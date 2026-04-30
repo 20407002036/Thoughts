@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Journal - Voice Recording</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-error-container": "#750e13",
+              "surface-container": "#f4f4f4",
+              "surface": "#ffffff",
+              "error": "#da1e28",
+              "outline-variant": "#e0e0e0",
+              "on-tertiary-container": "#044317",
+              "secondary": "#6f6f6f",
+              "tertiary-fixed": "#a7f0ba",
+              "surface-container-highest": "#c6c6c6",
+              "primary-fixed": "#d0e2ff",
+              "on-error": "#ffffff",
+              "surface-dim": "#e0e0e0",
+              "on-primary": "#ffffff",
+              "primary-fixed-dim": "#78a9ff",
+              "on-surface": "#161616",
+              "surface-variant": "#f4f4f4",
+              "error-container": "#fff1f1",
+              "tertiary": "#198038",
+              "surface-container-high": "#e0e0e0",
+              "secondary-container": "#e0e0e0",
+              "on-tertiary": "#ffffff",
+              "on-background": "#161616",
+              "on-primary-container": "#161616",
+              "outline": "#8d8d8d",
+              "inverse-surface": "#393939",
+              "on-secondary-fixed": "#161616",
+              "on-primary-fixed-variant": "#0043ce",
+              "inverse-primary": "#78a9ff",
+              "surface-bright": "#ffffff",
+              "tertiary-fixed-dim": "#42be65",
+              "surface-tint": "#0f62fe",
+              "secondary-fixed-dim": "#c6c6c6",
+              "inverse-on-surface": "#f4f4f4",
+              "on-secondary-container": "#525252",
+              "on-secondary": "#ffffff",
+              "primary": "#0f62fe",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#f4f4f4",
+              "on-tertiary-fixed": "#022d0d",
+              "on-surface-variant": "#525252",
+              "on-primary-fixed": "#001d6c",
+              "tertiary-container": "#a7f0ba",
+              "on-secondary-fixed-variant": "#525252",
+              "primary-container": "#d0e2ff",
+              "on-tertiary-fixed-variant": "#044317",
+              "background": "#ffffff",
+              "secondary-fixed": "#e0e0e0"
+            },
+            fontFamily: {
+              "headline": ["IBM Plex Sans"],
+              "body": ["IBM Plex Sans"],
+              "label": ["IBM Plex Sans"]
+            },
+            borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .waveform-bar {
+            width: 4px;
+            background-color: #0f62fe;
+            margin: 0 2px;
+            border-radius: 2px;
+        }
+        .pulsing-orb {
+            box-shadow: 0 0 40px rgba(15, 98, 254, 0.2);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-background antialiased overflow-hidden h-screen flex flex-col">
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-12 bg-white border-b border-gray-200">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-8 h-8 hover:bg-gray-100 transition-colors active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-gray-600" data-icon="close">close</span>
+</button>
+<h1 class="font-sans text-sm font-normal tracking-tight text-gray-900">Recording Entry</h1>
+</div>
+<div class="w-8 h-8 bg-primary-container rounded-full flex items-center justify-center overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBW23iHQw0Z3-ftEqCVW3smuF906Ce7792CpzD19CPXt5F8IevlmihOtbJnkq_kEjOnFLH_wdu9fLzU_9Qrz7qcc0dcnhUInqlAoXZtPIocK2JYo9epR9I7qPxrgPD-QaPqpJW9y3N82CaA6h9TeAaPzLilwwdtcOYK6oMsJWgruiX9b76l9XHGnvC53VQJQo3TdbIeb57HN7gSPe3Zo6cnZYdQMiCKUr0JWMJuO_p-XJkOy1cLFh4M4EW9_VbSzCAvQHhhMZafDn8M"/>
+</div>
+</header>
+<!-- Main Recording Canvas -->
+<main class="flex-1 flex flex-col items-center justify-center pt-12 pb-16 px-6">
+<!-- Timer Section -->
+<div class="mb-12 text-center">
+<span class="text-secondary text-sm font-label tracking-widest block mb-2">LIVE TRANSCRIPT ACTIVE</span>
+<div class="text-6xl font-light tracking-tighter text-on-background tabular-nums">04:12</div>
+</div>
+<!-- AI Agent Pulsing Orb/Waveform Container -->
+<div class="relative w-64 h-64 flex items-center justify-center mb-16">
+<!-- Pulsing Background Layers -->
+<div class="absolute inset-0 bg-primary/5 rounded-full scale-110"></div>
+<div class="absolute inset-0 bg-primary/10 rounded-full scale-90"></div>
+<!-- Central Visualizer -->
+<div class="relative w-40 h-40 bg-primary rounded-full flex items-center justify-center pulsing-orb">
+<div class="flex items-end justify-center h-16 gap-1">
+<div class="waveform-bar h-8"></div>
+<div class="waveform-bar h-12"></div>
+<div class="waveform-bar h-16"></div>
+<div class="waveform-bar h-10"></div>
+<div class="waveform-bar h-14"></div>
+<div class="waveform-bar h-6"></div>
+<div class="waveform-bar h-12"></div>
+</div>
+</div>
+</div>
+<!-- Transcription Preview (Carbon Card) -->
+<div class="w-full max-w-md bg-surface-container-low p-4 mb-12 border-l-4 border-primary">
+<p class="text-on-surface-variant text-sm leading-relaxed italic">
+                "...and then I realized that the project clarity was more about the team's communication than the tools we were using. I should probably focus on the sprint review tomorrow..."
+            </p>
+</div>
+<!-- Control Actions -->
+<div class="flex items-center gap-12">
+<!-- Pause Button -->
+<div class="flex flex-col items-center gap-2">
+<button class="w-12 h-12 rounded-full border border-outline flex items-center justify-center hover:bg-surface-container transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined text-on-surface" data-icon="pause">pause</span>
+</button>
+<span class="text-[12px] font-label text-secondary">Pause</span>
+</div>
+<!-- Stop/Finish Button (Primary Action) -->
+<div class="flex flex-col items-center gap-2">
+<button class="w-20 h-20 bg-error flex items-center justify-center hover:brightness-110 transition-all active:scale-95 duration-150 shadow-lg">
+<span class="material-symbols-outlined text-white text-4xl" data-icon="stop">stop</span>
+</button>
+<span class="text-[12px] font-label text-error font-semibold">Finish</span>
+</div>
+<!-- Archive/Discard Button -->
+<div class="flex flex-col items-center gap-2">
+<button class="w-12 h-12 rounded-full border border-outline flex items-center justify-center hover:bg-surface-container transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined text-on-surface" data-icon="delete">delete</span>
+</button>
+<span class="text-[12px] font-label text-secondary">Discard</span>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center bg-white h-16 px-2 border-t border-gray-200">
+<a class="flex flex-col items-center justify-center text-gray-500 pt-1 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-sans text-[12px] font-normal">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-600 border-t-2 border-blue-600 pt-1 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="mic" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span class="font-sans text-[12px] font-medium">Record</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 pt-1 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-sans text-[12px] font-normal">Review</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 pt-1 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+<span class="font-sans text-[12px] font-normal">Archives</span>
+</a>
+</nav>
+</body></html>

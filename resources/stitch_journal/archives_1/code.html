@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-error-container": "#750e13",
+            "surface-container": "#f4f4f4",
+            "surface": "#ffffff",
+            "error": "#da1e28",
+            "outline-variant": "#e0e0e0",
+            "on-tertiary-container": "#044317",
+            "secondary": "#6f6f6f",
+            "tertiary-fixed": "#a7f0ba",
+            "surface-container-highest": "#c6c6c6",
+            "primary-fixed": "#d0e2ff",
+            "on-error": "#ffffff",
+            "surface-dim": "#e0e0e0",
+            "on-primary": "#ffffff",
+            "primary-fixed-dim": "#78a9ff",
+            "on-surface": "#161616",
+            "surface-variant": "#f4f4f4",
+            "error-container": "#fff1f1",
+            "tertiary": "#198038",
+            "surface-container-high": "#e0e0e0",
+            "secondary-container": "#e0e0e0",
+            "on-tertiary": "#ffffff",
+            "on-background": "#161616",
+            "on-primary-container": "#161616",
+            "outline": "#8d8d8d",
+            "inverse-surface": "#393939",
+            "on-secondary-fixed": "#161616",
+            "on-primary-fixed-variant": "#0043ce",
+            "inverse-primary": "#78a9ff",
+            "surface-bright": "#ffffff",
+            "tertiary-fixed-dim": "#42be65",
+            "surface-tint": "#0f62fe",
+            "secondary-fixed-dim": "#c6c6c6",
+            "inverse-on-surface": "#f4f4f4",
+            "on-secondary-container": "#525252",
+            "on-secondary": "#ffffff",
+            "primary": "#0f62fe",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f4f4f4",
+            "on-tertiary-fixed": "#022d0d",
+            "on-surface-variant": "#525252",
+            "on-primary-fixed": "#001d6c",
+            "tertiary-container": "#a7f0ba",
+            "on-secondary-fixed-variant": "#525252",
+            "primary-container": "#d0e2ff",
+            "on-tertiary-fixed-variant": "#044317",
+            "background": "#ffffff",
+            "secondary-fixed": "#e0e0e0"
+          },
+          fontFamily: {
+            "headline": ["IBM Plex Sans"],
+            "body": ["IBM Plex Sans"],
+            "label": ["IBM Plex Sans"]
+          },
+          borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body { font-family: 'IBM Plex Sans', sans-serif; }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-20">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-12 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:opacity-80">
+<span class="material-symbols-outlined text-gray-900 dark:text-white" data-icon="menu">menu</span>
+</button>
+<span class="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">Journal</span>
+</div>
+<div class="flex items-center">
+<div class="h-8 w-8 rounded-full bg-primary-fixed flex items-center justify-center overflow-hidden border border-outline-variant">
+<img alt="User Profile" data-alt="User profile avatar icon placeholder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5GAHnD5MDNTsVFPagPTq4Jfbedtaau0ahTb52TfZFbOVjyl1vTREXzVoQc5DfGTU1P_f1o7RJuQmPV_4FA4fI00Au4qmLlP2IGP_DgfLrm1HZRoW36oMvLx3rDf3sQ8gxQILdGk93tzY6CRsYVmLcPASn-2Dzsh0zQc-y1e-cuwDWn7EAfB3ELuNfddLKOq7aCOY5T0_VaSi8SVcr-9ngxvaSGFdCB0f_MFFDeNpNoTe7GzvWtF-9X0qlwsuzk_bfAPlrBOShCT_m"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-16 px-4 md:px-8 max-w-5xl mx-auto">
+<!-- Search & Filter Section -->
+<section class="mt-4 mb-8">
+<div class="flex flex-col gap-4">
+<h1 class="text-2xl font-normal text-on-surface">Archives</h1>
+<div class="flex flex-col md:flex-row gap-2">
+<!-- Carbon Search Input -->
+<div class="relative flex-grow">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm" data-icon="search">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-container-low border-b border-outline focus:border-primary focus:ring-0 text-sm transition-all outline-none" placeholder="Search entries, tags, or content..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-4 h-10 bg-surface-container-high hover:bg-surface-container-highest transition-colors text-sm text-on-surface">
+<span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
+<span>Filter</span>
+</button>
+<button class="flex items-center gap-2 px-4 h-10 bg-surface-container-high hover:bg-surface-container-highest transition-colors text-sm text-on-surface">
+<span class="material-symbols-outlined text-sm" data-icon="sort">sort</span>
+<span>Sort</span>
+</button>
+</div>
+</div>
+<!-- Quick Category Tags -->
+<div class="flex flex-wrap gap-2 mt-2">
+<span class="px-3 py-1 bg-primary text-on-primary text-[12px] font-medium rounded-full cursor-pointer">All</span>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[12px] rounded-full hover:bg-outline-variant cursor-pointer transition-colors">Personal</span>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[12px] rounded-full hover:bg-outline-variant cursor-pointer transition-colors">Work</span>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[12px] rounded-full hover:bg-outline-variant cursor-pointer transition-colors">Ideas</span>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[12px] rounded-full hover:bg-outline-variant cursor-pointer transition-colors">Reflections</span>
+</div>
+</div>
+</section>
+<!-- Archive List Grouped -->
+<div class="space-y-10">
+<!-- Month Group: October 2023 -->
+<section>
+<div class="flex items-center gap-4 mb-4">
+<h2 class="text-sm font-semibold uppercase tracking-wider text-secondary">October 2023</h2>
+<div class="flex-grow h-px bg-outline-variant"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-outline-variant border border-outline-variant">
+<!-- Entry Card 1 -->
+<div class="bg-surface p-4 hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[12px] font-medium text-primary">Oct 24, 2023 • 09:15 AM</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_forward">arrow_forward</span>
+</div>
+<h3 class="font-semibold text-on-surface mb-2 leading-tight">Quarterly Review Brainstorming</h3>
+<p class="text-on-secondary-container text-sm line-clamp-2 mb-4 leading-relaxed">Discussed the upcoming Q4 goals with the engineering lead. We need to focus on system stability and reducing technical debt in the legacy modules...</p>
+<div class="flex gap-2">
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Work</span>
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Planning</span>
+</div>
+</div>
+<!-- Entry Card 2 -->
+<div class="bg-surface p-4 hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[12px] font-medium text-primary">Oct 21, 2023 • 11:45 PM</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_forward">arrow_forward</span>
+</div>
+<h3 class="font-semibold text-on-surface mb-2 leading-tight">Late Night Reflection on Design Systems</h3>
+<p class="text-on-secondary-container text-sm line-clamp-2 mb-4 leading-relaxed">The complexity of modern enterprise UIs is staggering. I've been thinking about how to simplify the atomic structure of our component library...</p>
+<div class="flex gap-2">
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Reflections</span>
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Design</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Month Group: September 2023 -->
+<section>
+<div class="flex items-center gap-4 mb-4">
+<h2 class="text-sm font-semibold uppercase tracking-wider text-secondary">September 2023</h2>
+<div class="flex-grow h-px bg-outline-variant"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-outline-variant border border-outline-variant">
+<!-- Entry Card 3 -->
+<div class="bg-surface p-4 hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[12px] font-medium text-primary">Sep 15, 2023 • 08:30 AM</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_forward">arrow_forward</span>
+</div>
+<h3 class="font-semibold text-on-surface mb-2 leading-tight">Morning Hike Notes</h3>
+<p class="text-on-secondary-container text-sm line-clamp-2 mb-4 leading-relaxed">The trail was quiet today. Saw several hawks circling near the ridge. It's a good reminder to step back and see the bigger picture once in a while...</p>
+<div class="flex gap-2">
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Personal</span>
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Nature</span>
+</div>
+</div>
+<!-- Entry Card 4 -->
+<div class="bg-surface p-4 hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[12px] font-medium text-primary">Sep 04, 2023 • 02:20 PM</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_forward">arrow_forward</span>
+</div>
+<h3 class="font-semibold text-on-surface mb-2 leading-tight">Product Strategy Session</h3>
+<p class="text-on-secondary-container text-sm line-clamp-2 mb-4 leading-relaxed">Reviewing user feedback from the last beta release. Primary pain point remains the navigation flow. We need to consolidate the sidebars...</p>
+<div class="flex gap-2">
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Work</span>
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Feedback</span>
+</div>
+</div>
+<!-- Entry Card 5 -->
+<div class="bg-surface p-4 hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[12px] font-medium text-primary">Sep 01, 2023 • 06:00 PM</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_forward">arrow_forward</span>
+</div>
+<h3 class="font-semibold text-on-surface mb-2 leading-tight">Books to Read: Fall List</h3>
+<p class="text-on-secondary-container text-sm line-clamp-2 mb-4 leading-relaxed">1. Thinking in Systems by Donella Meadows. 2. The Design of Everyday Things. 3. Invisible Cities by Italo Calvino. Need to find hardcovers...</p>
+<div class="flex gap-2">
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Ideas</span>
+<span class="text-[10px] bg-secondary-container px-2 py-0.5 text-on-secondary-container font-medium">#Reading</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Empty State / Pagination Simulation -->
+<div class="mt-12 mb-20 text-center">
+<button class="px-6 py-2 border border-primary text-primary font-medium hover:bg-primary-container transition-colors active:scale-95 duration-150">
+        Load Older Entries
+      </button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center bg-white dark:bg-gray-950 h-16 px-2 border-t border-gray-200 dark:border-gray-800">
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 pt-1 hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-sans text-[12px] font-normal">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 pt-1 hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="mic">mic</span>
+<span class="font-sans text-[12px] font-normal">Record</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 pt-1 hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-sans text-[12px] font-normal">Review</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 border-t-2 border-blue-600 dark:border-blue-400 pt-1 hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+<span class="font-sans text-[12px] font-normal">Archives</span>
+</a>
+</nav>
+</body></html>

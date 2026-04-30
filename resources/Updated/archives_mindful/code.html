@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Archives | Terra Mindful</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "background": "#fffcf7",
+                "on-background": "#373831",
+                "surface": "#ffffff",
+                "surface-variant": "#f6f4ec",
+                "primary": "#7b5e53",
+                "on-primary": "#ffffff",
+                "secondary": "#64655c",
+                "outline": "#d7c1b9",
+                "accent-warm": "#8D6E63",
+                "surface-container-low": "#fcf9f3"
+            },
+            "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "1.5rem",
+                "xl": "2rem",
+                "full": "9999px"
+            },
+            "fontFamily": {
+                "headline": ["Plus Jakarta Sans", "sans-serif"],
+                "body": ["Be Vietnam Pro", "sans-serif"],
+                "label": ["Be Vietnam Pro", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body {
+            min-height: max(884px, 100dvh);
+            background-color: #fffcf7;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary/20">
+<!-- TopAppBar (shared component) -->
+<header class="fixed top-0 w-full z-50 bg-[#fffcf7]/70 dark:bg-[#1c1b17]/70 backdrop-blur-md flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#7b5e53] dark:text-[#d7c1b9]" data-icon="spa">spa</span>
+<h1 class="font-headline text-lg font-semibold tracking-tight text-[#373831] dark:text-[#e4e3da]">Mindful Moments</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-primary/10">
+<img alt="User avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoqPjEA3Qly7qksVBoz3TZudz1Q4r7MHbPU_XkyqSUHu8YJT92BfRXuaLSghvpgblj7K-VoZUkQ1J4LLrRjN2e6enRKu3hQccQI5Guqv0pPSzUg1InPbtJ-x34liArCPrj_ODQGgVx4gV9C8EjgRfZjVsl-Z9_Y_pzGIGRGoonQU-fexH1migXZRWHhNUz3SqTqUg_87EnYlFOcFJac5ddchT0DdVwTcztKpx01w802psFCVIRHxj0I-EU4QjVs-tyorS--LObJMk"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-40 px-6 max-w-2xl mx-auto">
+<!-- Search Section -->
+<section class="mb-10">
+<div class="relative group">
+<div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-primary/40">
+<span class="material-symbols-outlined text-xl" data-icon="search">search</span>
+</div>
+<input class="w-full h-14 pl-14 pr-6 bg-white rounded-full border-none ring-1 ring-outline/20 focus:ring-2 focus:ring-primary/20 transition-all text-body font-medium placeholder:text-secondary/40 shadow-[0_4px_24px_rgba(123,94,83,0.04)]" placeholder="Search your reflections..." type="text"/>
+</div>
+</section>
+<!-- Filter Chips -->
+<section class="mb-12 no-scrollbar overflow-x-auto">
+<div class="flex gap-3 whitespace-nowrap">
+<button class="px-6 py-3 rounded-full bg-primary text-on-primary font-label text-xs font-semibold tracking-wide shadow-md">All Entries</button>
+<button class="px-6 py-3 rounded-full bg-surface-variant text-secondary font-label text-xs font-semibold tracking-wide hover:bg-primary/5 transition-colors">This Week</button>
+<button class="px-6 py-3 rounded-full bg-surface-variant text-secondary font-label text-xs font-semibold tracking-wide flex items-center gap-2 hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined text-base" data-icon="sentiment_satisfied">sentiment_satisfied</span>
+                Mood: Happy
+            </button>
+<button class="px-6 py-3 rounded-full bg-surface-variant text-secondary font-label text-xs font-semibold tracking-wide flex items-center gap-2 hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined text-base" data-icon="work">work</span>
+                Topic: Work
+            </button>
+</div>
+</section>
+<!-- Archives List -->
+<div class="space-y-14">
+<!-- Group: September 2023 -->
+<section>
+<div class="flex items-center justify-between mb-8 px-2">
+<h2 class="font-headline text-xl font-bold text-on-background">September 2023</h2>
+<span class="text-[10px] font-bold font-label uppercase tracking-[0.2em] text-secondary/50">12 entries</span>
+</div>
+<div class="space-y-6">
+<!-- Entry Card -->
+<article class="bg-white p-7 rounded-[2.5rem] shadow-[0_8px_30px_rgba(123,94,83,0.03)] border border-primary/5 hover:scale-[1.01] transition-transform duration-300 cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="space-y-1">
+<h3 class="font-headline text-lg font-semibold text-on-background leading-tight">The Architectural Balance of Routine</h3>
+<p class="text-[10px] font-label font-bold uppercase tracking-widest text-secondary/60">Sept 14, 2023 • 08:45 AM</p>
+</div>
+<div class="bg-primary/5 px-4 py-1.5 rounded-full flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-sm" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="text-[10px] font-bold tracking-tighter uppercase">CALM</span>
+</div>
+</div>
+<p class="text-secondary/80 line-clamp-2 leading-relaxed text-sm">Today I explored the intersection of structured workflows and creative freedom. Finding the stillness within the chaos of the city...</p>
+</article>
+<!-- Entry Card -->
+<article class="bg-white p-7 rounded-[2.5rem] shadow-[0_8px_30px_rgba(123,94,83,0.03)] border border-primary/5 hover:scale-[1.01] transition-transform duration-300 cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="space-y-1">
+<h3 class="font-headline text-lg font-semibold text-on-background leading-tight">Navigating Technical Friction</h3>
+<p class="text-[10px] font-label font-bold uppercase tracking-widest text-secondary/60">Sept 12, 2023 • 10:12 PM</p>
+</div>
+<div class="bg-[#e4e3da] px-4 py-1.5 rounded-full flex items-center gap-2 text-[#373831]">
+<span class="material-symbols-outlined text-sm" data-icon="lightbulb" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+<span class="text-[10px] font-bold tracking-tighter uppercase">WORK</span>
+</div>
+</div>
+<p class="text-secondary/80 line-clamp-2 leading-relaxed text-sm">The project's architectural constraints are becoming clearer. It is not about the limitations, but how we dance within them...</p>
+</article>
+</div>
+</section>
+<!-- Group: August 2023 -->
+<section>
+<div class="flex items-center justify-between mb-8 px-2">
+<h2 class="font-headline text-xl font-bold text-on-background">August 2023</h2>
+<span class="text-[10px] font-bold font-label uppercase tracking-[0.2em] text-secondary/50">28 entries</span>
+</div>
+<div class="space-y-6">
+<!-- Entry Card -->
+<article class="bg-white p-7 rounded-[2.5rem] shadow-[0_8px_30px_rgba(123,94,83,0.03)] border border-primary/5 hover:scale-[1.01] transition-transform duration-300 cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="space-y-1">
+<h3 class="font-headline text-lg font-semibold text-on-background leading-tight">Solitude vs Isolation</h3>
+<p class="text-[10px] font-label font-bold uppercase tracking-widest text-secondary/60">Aug 29, 2023 • 06:20 AM</p>
+</div>
+<div class="bg-accent-warm/10 px-4 py-1.5 rounded-full flex items-center gap-2 text-accent-warm">
+<span class="material-symbols-outlined text-sm" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="text-[10px] font-bold tracking-tighter uppercase">REFLECTION</span>
+</div>
+</div>
+<p class="text-secondary/80 line-clamp-2 leading-relaxed text-sm">Reflecting on the difference between being alone and feeling lonely. True solitude is the curator of the soul's gallery...</p>
+</article>
+<!-- Entry Card -->
+<article class="bg-white p-7 rounded-[2.5rem] shadow-[0_8px_30px_rgba(123,94,83,0.03)] border border-primary/5 hover:scale-[1.01] transition-transform duration-300 cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="space-y-1">
+<h3 class="font-headline text-lg font-semibold text-on-background leading-tight">The Color of Silence</h3>
+<p class="text-[10px] font-label font-bold uppercase tracking-widest text-secondary/60">Aug 21, 2023 • 09:15 PM</p>
+</div>
+<div class="bg-red-50 px-4 py-1.5 rounded-full flex items-center gap-2 text-red-800/60">
+<span class="material-symbols-outlined text-sm" data-icon="cloud" style="font-variation-settings: 'FILL' 1;">cloud</span>
+<span class="text-[10px] font-bold tracking-tighter uppercase">MELANCHOLY</span>
+</div>
+</div>
+<p class="text-secondary/80 line-clamp-2 leading-relaxed text-sm">Sometimes silence is heavy. It feels like a monolithic structure that blocks the light. Today was a struggle to find the door...</p>
+</article>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar (shared component) -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-8 pt-4 bg-[#ffffff]/70 dark:bg-[#1c1b17]/70 backdrop-blur-xl rounded-t-[3rem] z-50 shadow-[0_-4px_40px_rgba(55,56,49,0.05)]">
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#abaa9f] px-5 py-2 hover:bg-[#fcf9f3] dark:hover:bg-[#2b2a22] rounded-full transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="edit_note">edit_note</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium tracking-wide">Journal</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#abaa9f] px-5 py-2 hover:bg-[#fcf9f3] dark:hover:bg-[#2b2a22] rounded-full transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="analytics">analytics</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium tracking-wide">Insights</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#7b5e53] text-white rounded-full px-6 py-2 transition-all duration-300 shadow-lg shadow-primary/20" href="#">
+<span class="material-symbols-outlined mb-0.5" data-icon="inventory_2" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-bold tracking-wide">Archives</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#abaa9f] px-5 py-2 hover:bg-[#fcf9f3] dark:hover:bg-[#2b2a22] rounded-full transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium tracking-wide">Settings</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Journal Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-error-container": "#750e13",
+              "surface-container": "#f4f4f4",
+              "surface": "#ffffff",
+              "error": "#da1e28",
+              "outline-variant": "#e0e0e0",
+              "on-tertiary-container": "#044317",
+              "secondary": "#6f6f6f",
+              "tertiary-fixed": "#a7f0ba",
+              "surface-container-highest": "#c6c6c6",
+              "primary-fixed": "#d0e2ff",
+              "on-error": "#ffffff",
+              "surface-dim": "#e0e0e0",
+              "on-primary": "#ffffff",
+              "primary-fixed-dim": "#78a9ff",
+              "on-surface": "#161616",
+              "surface-variant": "#f4f4f4",
+              "error-container": "#fff1f1",
+              "tertiary": "#198038",
+              "surface-container-high": "#e0e0e0",
+              "secondary-container": "#e0e0e0",
+              "on-tertiary": "#ffffff",
+              "on-background": "#161616",
+              "on-primary-container": "#161616",
+              "outline": "#8d8d8d",
+              "inverse-surface": "#393939",
+              "on-secondary-fixed": "#161616",
+              "on-primary-fixed-variant": "#0043ce",
+              "inverse-primary": "#78a9ff",
+              "surface-bright": "#ffffff",
+              "tertiary-fixed-dim": "#42be65",
+              "surface-tint": "#0f62fe",
+              "secondary-fixed-dim": "#c6c6c6",
+              "inverse-on-surface": "#f4f4f4",
+              "on-secondary-container": "#525252",
+              "on-secondary": "#ffffff",
+              "primary": "#0f62fe",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#f4f4f4",
+              "on-tertiary-fixed": "#022d0d",
+              "on-surface-variant": "#525252",
+              "on-primary-fixed": "#001d6c",
+              "tertiary-container": "#a7f0ba",
+              "on-secondary-fixed-variant": "#525252",
+              "primary-container": "#d0e2ff",
+              "on-tertiary-fixed-variant": "#044317",
+              "background": "#ffffff",
+              "secondary-fixed": "#e0e0e0"
+            },
+            fontFamily: {
+              "headline": ["IBM Plex Sans"],
+              "body": ["IBM Plex Sans"],
+              "label": ["IBM Plex Sans"]
+            },
+            borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'IBM Plex Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-20">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-12 bg-white border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center w-8 h-8 hover:bg-surface-container transition-colors active:opacity-80">
+<span class="material-symbols-outlined text-on-surface" data-icon="menu">menu</span>
+</button>
+<h1 class="text-lg font-semibold text-on-surface font-headline tracking-tight">Journal</h1>
+</div>
+<div class="flex items-center">
+<div class="w-8 h-8 bg-primary-container flex items-center justify-center text-[10px] font-semibold text-on-primary-container">
+                UP
+            </div>
+</div>
+</header>
+<main class="pt-16 px-4 space-y-6">
+<!-- Streak Bento Section -->
+<section class="grid grid-cols-2 gap-px bg-outline-variant">
+<div class="bg-surface-container-low p-4 col-span-2">
+<p class="text-[12px] font-label text-secondary mb-1">Journaling Streak</p>
+<div class="flex items-end gap-2">
+<span class="text-4xl font-light text-primary">5</span>
+<span class="text-sm font-medium mb-1.5">days in a row</span>
+</div>
+<div class="mt-4 flex gap-1.5">
+<div class="h-1 flex-1 bg-primary"></div>
+<div class="h-1 flex-1 bg-primary"></div>
+<div class="h-1 flex-1 bg-primary"></div>
+<div class="h-1 flex-1 bg-primary"></div>
+<div class="h-1 flex-1 bg-primary"></div>
+<div class="h-1 flex-1 bg-outline-variant"></div>
+<div class="h-1 flex-1 bg-outline-variant"></div>
+</div>
+</div>
+</section>
+<!-- Daily Prompt Section -->
+<section class="bg-surface-container p-4 space-y-4">
+<div class="space-y-1">
+<span class="text-[10px] tracking-widest font-semibold text-primary uppercase">Daily Prompt</span>
+<h2 class="text-xl font-medium leading-tight">What is one thing that made you smile today?</h2>
+</div>
+<button class="w-full h-12 bg-primary text-white flex items-center justify-center gap-2 font-medium hover:brightness-110 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined" data-icon="mic" style="font-variation-settings: 'FILL' 1;">mic</span>
+                Start Recording
+            </button>
+</section>
+<!-- Recent Entries -->
+<section class="space-y-3">
+<div class="flex justify-between items-center">
+<h3 class="text-sm font-semibold text-on-surface">Recent Entries</h3>
+<button class="text-primary text-xs font-medium">View all</button>
+</div>
+<div class="space-y-px bg-outline-variant">
+<!-- Entry 1 -->
+<div class="bg-white p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center bg-tertiary-container text-tertiary">
+<span class="material-symbols-outlined" data-icon="sentiment_satisfied" style="font-variation-settings: 'FILL' 1;">sentiment_satisfied</span>
+</div>
+<div>
+<p class="text-sm font-medium text-on-surface">Morning Reflection</p>
+<p class="text-xs text-secondary">Oct 24 • 08:30 AM</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-sm" data-icon="chevron_right">chevron_right</span>
+</div>
+<!-- Entry 2 -->
+<div class="bg-white p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center bg-surface-container-highest text-secondary">
+<span class="material-symbols-outlined" data-icon="sentiment_neutral" style="font-variation-settings: 'FILL' 1;">sentiment_neutral</span>
+</div>
+<div>
+<p class="text-sm font-medium text-on-surface">Work Day Recap</p>
+<p class="text-xs text-secondary">Oct 23 • 06:15 PM</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-sm" data-icon="chevron_right">chevron_right</span>
+</div>
+<!-- Entry 3 -->
+<div class="bg-white p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary">
+<span class="material-symbols-outlined" data-icon="sentiment_very_satisfied" style="font-variation-settings: 'FILL' 1;">sentiment_very_satisfied</span>
+</div>
+<div>
+<p class="text-sm font-medium text-on-surface">Weekend Highlights</p>
+<p class="text-xs text-secondary">Oct 22 • 09:45 PM</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-sm" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Quick Stats Bento -->
+<section class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4">
+<span class="material-symbols-outlined text-primary mb-2" data-icon="description">description</span>
+<p class="text-2xl font-light">42</p>
+<p class="text-[10px] text-secondary font-medium uppercase tracking-wider">Total Entries</p>
+</div>
+<div class="bg-surface-container-low p-4">
+<span class="material-symbols-outlined text-tertiary mb-2" data-icon="mood">mood</span>
+<p class="text-2xl font-light">85%</p>
+<p class="text-[10px] text-secondary font-medium uppercase tracking-wider">Positive Mood</p>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center bg-white h-16 px-2 border-t border-outline-variant">
+<a class="flex flex-col items-center justify-center text-primary border-t-2 border-primary pt-1 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-sans text-[12px] font-normal">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary pt-1 hover:bg-surface-container-low active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="mic">mic</span>
+<span class="font-sans text-[12px] font-normal">Record</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary pt-1 hover:bg-surface-container-low active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-sans text-[12px] font-normal">Review</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary pt-1 hover:bg-surface-container-low active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+<span class="font-sans text-[12px] font-normal">Archives</span>
+</a>
+</nav>
+</body></html>

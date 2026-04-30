@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mindful Moments - Recording</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#7b5e53",
+                        "inverse-primary": "#f6cfc2",
+                        "surface-variant": "#eae9dd",
+                        "on-surface": "#373831",
+                        "on-primary-container": "#5f453b",
+                        "secondary-fixed-dim": "#d4eabb",
+                        "primary-container": "#f6cfc2",
+                        "on-surface-variant": "#64655c",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#e3f8c9",
+                        "on-error-container": "#65000b",
+                        "on-tertiary-fixed-variant": "#6e4613",
+                        "tertiary-fixed": "#fec485",
+                        "on-tertiary-fixed": "#4b2b00",
+                        "background": "#fffcf7",
+                        "outline-variant": "#babaaf",
+                        "on-background": "#373831",
+                        "error-dim": "#70030f",
+                        "on-secondary-container": "#4e603b",
+                        "inverse-on-surface": "#9e9d98",
+                        "inverse-surface": "#0e0e0c",
+                        "surface-dim": "#e4e3d6",
+                        "error": "#b33938",
+                        "surface-container-highest": "#eae9dd",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-dim": "#794f1c",
+                        "primary": "#7b5e53",
+                        "on-primary-fixed": "#4b3229",
+                        "primary-fixed-dim": "#e7c1b4",
+                        "primary-dim": "#6e5248",
+                        "on-error": "#ffffff",
+                        "surface": "#fffcf7",
+                        "surface-container": "#f6f4ec",
+                        "on-secondary-fixed": "#3c4d2b",
+                        "tertiary-container": "#fec485",
+                        "tertiary": "#875b27",
+                        "secondary-dim": "#4c5e3a",
+                        "on-tertiary-container": "#633d09",
+                        "primary-fixed": "#f6cfc2",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#818178",
+                        "secondary-fixed": "#e3f8c9",
+                        "surface-container-high": "#f0eee4",
+                        "on-primary-fixed-variant": "#6a4e44",
+                        "surface-bright": "#fffcf7",
+                        "on-secondary-fixed-variant": "#586a45",
+                        "tertiary-fixed-dim": "#efb679",
+                        "surface-container-low": "#fcf9f3",
+                        "secondary": "#586a45",
+                        "error-container": "#f56965"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Be Vietnam Pro"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #fffcf7;
+            color: #373831;
+        }
+        .waveform-bar {
+            width: 4px;
+            border-radius: 9999px;
+            transition: height 0.3s ease;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col overflow-hidden">
+<!-- TopAppBar Shell -->
+<header class="sticky top-0 z-50 flex items-center justify-between px-6 py-3 max-w-lg mx-auto bg-white/70 dark:bg-stone-900/70 backdrop-blur-xl rounded-full mt-4 mx-4 shadow-2xl shadow-[#373831]/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a calm woman with soft natural lighting and a neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6xTbUiKN-EGVz1acUU5rR_DaO7PU16SKUzg0-J0CYTgmNMiha5y89HE-0vn3FV5tCvQs0fpICyQHW8I1UYGi0hlfIXS4SS9nPcmJoaP9S9su3kxAc6n0QvtmLWq69W_ykIrMlZNkQfqUKfvwXEfE80iXLJX5jQt-HCPSwvN4wkBS_r__GZi2GSgWOV7mTKxpolEwuThVLLozgBv7ZQ5YbgiVz_sSsYQZbNA9-o_KuVDcg21xW7Ldz16sL6eA_iPx9dK12COBv9xs"/>
+</div>
+</div>
+<h1 class="text-xl font-bold text-[#373831] dark:text-[#fcf9f3] font-['Plus_Jakarta_Sans'] font-semibold tracking-tight">Sanctuary</h1>
+<button class="material-symbols-outlined text-[#64655c] dark:text-[#babaaf] hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors p-2 rounded-full">
+            settings
+        </button>
+</header>
+<!-- Main Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center px-8 relative">
+<!-- Subtle Ambient Background Glow -->
+<div class="absolute inset-0 pointer-events-none overflow-hidden">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 blur-[120px] rounded-full"></div>
+</div>
+<div class="z-10 w-full max-w-sm flex flex-col items-center gap-12">
+<!-- Timer & Status -->
+<div class="text-center space-y-2">
+<p class="font-headline text-5xl font-bold tracking-tight text-on-surface">00:45</p>
+<div class="flex items-center justify-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span class="text-on-surface-variant font-medium tracking-wide uppercase text-[10px]">Recording Session</span>
+</div>
+</div>
+<!-- Waveform Visualization -->
+<div class="flex items-end justify-center gap-1.5 h-32 w-full px-4">
+<div class="waveform-bar bg-primary-container h-8"></div>
+<div class="waveform-bar bg-primary h-16"></div>
+<div class="waveform-bar bg-secondary-container h-12"></div>
+<div class="waveform-bar bg-primary-container h-24"></div>
+<div class="waveform-bar bg-primary h-32"></div>
+<div class="waveform-bar bg-secondary h-20"></div>
+<div class="waveform-bar bg-primary-container h-14"></div>
+<div class="waveform-bar bg-primary-dim h-28"></div>
+<div class="waveform-bar bg-primary-fixed-dim h-10"></div>
+<div class="waveform-bar bg-primary h-18"></div>
+<div class="waveform-bar bg-primary-container h-24"></div>
+<div class="waveform-bar bg-primary h-32"></div>
+<div class="waveform-bar bg-secondary-container h-20"></div>
+<div class="waveform-bar bg-primary-container h-14"></div>
+<div class="waveform-bar bg-primary-dim h-28"></div>
+<div class="waveform-bar bg-primary-fixed-dim h-10"></div>
+<div class="waveform-bar bg-primary-container h-12"></div>
+</div>
+<!-- Glowing Record Button -->
+<div class="relative flex items-center justify-center">
+<!-- Pulse Layers -->
+<div class="absolute w-32 h-32 bg-primary/10 rounded-full animate-ping opacity-20"></div>
+<div class="absolute w-28 h-28 bg-primary/20 rounded-full animate-pulse opacity-40"></div>
+<button class="relative w-24 h-24 bg-gradient-to-br from-primary to-primary-dim rounded-full shadow-xl shadow-primary/30 flex items-center justify-center text-white scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+</div>
+<!-- Focus Controls -->
+<div class="flex items-center gap-6 w-full">
+<button class="flex-1 py-4 px-8 rounded-full bg-surface-container-low text-on-surface-variant font-semibold hover:bg-surface-container-high transition-colors">
+                    Pause
+                </button>
+<button class="flex-1 py-4 px-8 rounded-full bg-primary text-on-primary font-semibold shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity">
+                    Finish
+                </button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center p-3 max-w-md mx-auto bg-white/80 dark:bg-stone-900/80 backdrop-blur-lg rounded-full mb-8 mx-auto w-[92%] shadow-[0_20px_50px_rgba(55,56,49,0.08)]">
+<button class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#babaaf] px-4 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined mb-1">home_max</span>
+<span class="font-['Be_Vietnam_Pro'] text-[10px] uppercase tracking-widest font-medium">Journal</span>
+</button>
+<!-- Active Tab: Record -->
+<button class="flex flex-col items-center justify-center bg-[#8D6E63] text-white rounded-full px-6 py-2 transition-all duration-500 hover:opacity-80">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">mic_none</span>
+<span class="font-['Be_Vietnam_Pro'] text-[10px] uppercase tracking-widest font-medium">Record</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#babaaf] px-4 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined mb-1">auto_stories</span>
+<span class="font-['Be_Vietnam_Pro'] text-[10px] uppercase tracking-widest font-medium">Library</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#babaaf] px-4 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined mb-1">person_2</span>
+<span class="font-['Be_Vietnam_Pro'] text-[10px] uppercase tracking-widest font-medium">Profile</span>
+</button>
+</nav>
+</body></html>

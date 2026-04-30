@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#8D6E63",
+                "on-primary": "#ffffff",
+                "surface": "#fffcf7",
+                "on-surface": "#373831",
+                "surface-container": "#f6f4ec",
+                "surface-container-low": "#fcf9f3",
+                "surface-container-high": "#ebe9e0",
+                "on-surface-variant": "#64655c",
+                "outline": "#abaa9f",
+                "secondary-container": "#f1ede4",
+                "accent": "#7b5e53"
+              },
+              borderRadius: {
+                "DEFAULT": "0.5rem",
+                "lg": "1rem",
+                "xl": "1.5rem",
+                "2xl": "2rem",
+                "full": "9999px"
+              },
+              fontFamily: {
+                "headline": ["Plus Jakarta Sans", "sans-serif"],
+                "body": ["Be Vietnam Pro", "sans-serif"],
+                "label": ["Be Vietnam Pro", "sans-serif"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scroll::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background: #ebe9e0;
+          border-radius: 10px;
+        }
+        body {
+          min-height: max(884px, 100dvh);
+          background-color: #fffcf7;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased custom-scroll">
+<!-- TopAppBar Shared Component -->
+<header class="fixed top-0 w-full z-50 bg-[#fffcf7]/70 dark:bg-[#1c1b17]/70 backdrop-blur-md">
+<div class="flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#7b5e53] dark:text-[#d7c1b9]" data-icon="spa">spa</span>
+<span class="font-['Plus_Jakarta_Sans'] text-lg font-semibold tracking-tight text-[#373831] dark:text-[#e4e3da]">The Stoic Architect</span>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-secondary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDu2UrTh7OvX-I_5zm0INxK_3ZfvjgnBuOZnOd9s2q79PH5_E3J2V1-1ZTxmJixONYQzRjf8B5zvB6IGYtlBIMdiwJZvo7XQmIDqEb4HwxKVjdfDeW_EaSMzcgd0n7zPTk91fST_DKxAYVPbOe6enRiNcij3SaE_Qoont1UDEBuLVUxI7sHZVM7gP2dzmynSwmxwreLVtF5r52MfeDHMuAVlSmue1jWtTIt1F2G9uDFDlWGjiIzebssUA9ZfAuUuRIEKdcl8WRofLU"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-4xl mx-auto">
+<!-- Hero Header -->
+<div class="mb-12">
+<div class="flex items-center gap-3 mb-4">
+<span class="bg-accent/10 text-accent px-4 py-1.5 rounded-full text-[0.7rem] font-bold uppercase tracking-widest">Archives</span>
+<span class="text-on-surface-variant text-[0.7rem] font-semibold tracking-wide uppercase">OCT 24, 2023 • 08:14 AM</span>
+</div>
+<h1 class="font-headline text-5xl font-bold leading-[1.1] tracking-tight text-on-surface mb-8">
+            The Morning<br/><span class="text-accent/80">Vantage Point.</span>
+</h1>
+<div class="flex flex-wrap gap-3">
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2 hover:bg-secondary-container transition-all active:scale-95">
+<span class="material-symbols-outlined text-lg" data-icon="share">share</span>
+                Export
+            </button>
+<button class="bg-accent text-on-primary px-8 py-3 rounded-full font-semibold text-sm flex items-center gap-2 shadow-[0_8px_20px_rgba(123,94,83,0.15)] hover:bg-primary transition-all active:scale-95">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+                Edit Entry
+            </button>
+</div>
+</div>
+<!-- Content Layout -->
+<div class="space-y-10">
+<!-- Transcription Section -->
+<section class="bg-surface-container-low/50 border border-secondary-container/30 p-8 rounded-[2.5rem] shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<h2 class="font-headline text-xl font-bold text-on-surface flex items-center gap-3">
+<span class="w-10 h-10 rounded-full bg-accent/5 flex items-center justify-center text-accent">
+<span class="material-symbols-outlined" data-icon="notes">notes</span>
+</span>
+                    Transcription
+                </h2>
+<span class="text-[0.65rem] font-bold text-on-surface-variant uppercase tracking-[0.2em] bg-surface-container px-3 py-1 rounded-full">942 Words</span>
+</div>
+<div class="space-y-6 text-on-surface/80 leading-relaxed font-body text-lg italic">
+<p>"I woke up today with a strange sense of clarity. The project at the firm has been weighing heavily on me, but as I sat with my coffee this morning, looking out at the skyline, the architecture of the problem started to simplify..."</p>
+<p>"I realized that I’ve been prioritizing the 'monumental' over the 'intimate.' If we want people to feel truly grounded in the new museum wing, we need to design for the moments between the exhibits. That’s where the soul lives."</p>
+<p>"I feel a deep sense of gratitude for this realization. It feels like a return to why I started this journey in the first place..."</p>
+</div>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Mood Analysis Card -->
+<div class="bg-accent/5 p-8 rounded-[2.5rem] border border-accent/10 flex flex-col items-center text-center">
+<div class="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center shadow-lg mb-4">
+<span class="material-symbols-outlined text-3xl" data-icon="sentiment_satisfied">sentiment_satisfied</span>
+</div>
+<h3 class="font-headline text-lg font-bold text-on-surface mb-1">Reflection &amp; Gratitude</h3>
+<p class="text-xs text-on-surface-variant uppercase tracking-widest font-bold mb-4">Mood Analysis</p>
+<p class="text-sm text-on-surface/70 leading-relaxed italic">Calm, Analytical, Intentional</p>
+</div>
+<!-- Smart Tags -->
+<div class="bg-surface-container-low p-8 rounded-[2.5rem] border border-secondary-container/20">
+<h3 class="text-[0.65rem] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-6 text-center">Connected Themes</h3>
+<div class="flex flex-wrap justify-center gap-2">
+<span class="bg-white px-4 py-2 rounded-full text-xs font-bold text-accent shadow-sm border border-secondary-container/30">#architecture</span>
+<span class="bg-white px-4 py-2 rounded-full text-xs font-bold text-accent shadow-sm border border-secondary-container/30">#mindfulness</span>
+<span class="bg-white px-4 py-2 rounded-full text-xs font-bold text-accent shadow-sm border border-secondary-container/30">#productivity</span>
+<span class="bg-white px-4 py-2 rounded-full text-xs font-bold text-accent shadow-sm border border-secondary-container/30">#reflection</span>
+<span class="bg-white px-4 py-2 rounded-full text-xs font-bold text-accent shadow-sm border border-secondary-container/30">#creativity</span>
+</div>
+</div>
+</div>
+<!-- AI Summary Card -->
+<div class="bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(123,94,83,0.04)] border border-secondary-container/20">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-accent" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h3 class="font-headline text-sm font-bold text-on-surface uppercase tracking-widest">Mindful Summary</h3>
+</div>
+<p class="text-on-surface/80 text-base leading-relaxed">
+                You are shifting your architectural focus from monumental structures to intimate human experiences. The entry reflects a breakthrough in problem-solving by prioritizing "the soul of the space" over technical constraints, resulting in a renewed sense of professional purpose.
+            </p>
+</div>
+<!-- Takeaways -->
+<div class="bg-surface-container p-8 rounded-[2.5rem]">
+<h3 class="text-[0.65rem] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-8">Key Insights</h3>
+<ul class="space-y-6">
+<li class="flex gap-4 items-start">
+<span class="w-6 h-6 rounded-full bg-accent flex items-center justify-center flex-shrink-0 text-[12px] text-white">1</span>
+<p class="text-on-surface leading-snug font-medium">Focus on the "in-between" moments in design to enhance user emotional connection.</p>
+</li>
+<li class="flex gap-4 items-start">
+<span class="w-6 h-6 rounded-full bg-accent flex items-center justify-center flex-shrink-0 text-[12px] text-white">2</span>
+<p class="text-on-surface leading-snug font-medium">Approaching team meetings with curiosity instead of defensiveness.</p>
+</li>
+<li class="flex gap-4 items-start">
+<span class="w-6 h-6 rounded-full bg-accent flex items-center justify-center flex-shrink-0 text-[12px] text-white">3</span>
+<p class="text-on-surface leading-snug font-medium">The environment impacts your creative problem-solving (Skyline view &amp; Morning ritual).</p>
+</li>
+</ul>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Shared Component -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#ffffff]/70 dark:bg-[#1c1b17]/70 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-4px_40px_rgba(55,56,49,0.05)]">
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#abaa9f] px-5 py-2 hover:bg-[#fcf9f3] dark:hover:bg-[#2b2a22] rounded-full transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="edit_note">edit_note</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium tracking-wide mt-1">Journal</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#abaa9f] px-5 py-2 hover:bg-[#fcf9f3] dark:hover:bg-[#2b2a22] rounded-full transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium tracking-wide mt-1">Insights</span>
+</a>
+<!-- Active Archive State mapped to Meditation/Journal context -->
+<a class="flex flex-col items-center justify-center bg-[#7b5e53] text-white rounded-full px-5 py-2 transition-all duration-300 shadow-lg active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium tracking-wide mt-1">Archives</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#abaa9f] px-5 py-2 hover:bg-[#fcf9f3] dark:hover:bg-[#2b2a22] rounded-full transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium tracking-wide mt-1">Settings</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#7b5e53",
+                        "inverse-primary": "#f6cfc2",
+                        "surface-variant": "#eae9dd",
+                        "on-surface": "#373831",
+                        "on-primary-container": "#5f453b",
+                        "secondary-fixed-dim": "#d4eabb",
+                        "primary-container": "#f6cfc2",
+                        "on-surface-variant": "#64655c",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#e3f8c9",
+                        "on-error-container": "#65000b",
+                        "on-tertiary-fixed-variant": "#6e4613",
+                        "tertiary-fixed": "#fec485",
+                        "on-tertiary-fixed": "#4b2b00",
+                        "background": "#fffcf7",
+                        "outline-variant": "#babaaf",
+                        "on-background": "#373831",
+                        "error-dim": "#70030f",
+                        "on-secondary-container": "#4e603b",
+                        "inverse-on-surface": "#9e9d98",
+                        "inverse-surface": "#0e0e0c",
+                        "surface-dim": "#e4e3d6",
+                        "error": "#b33938",
+                        "surface-container-highest": "#eae9dd",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-dim": "#794f1c",
+                        "primary": "#7b5e53",
+                        "on-primary-fixed": "#4b3229",
+                        "primary-fixed-dim": "#e7c1b4",
+                        "primary-dim": "#6e5248",
+                        "on-error": "#ffffff",
+                        "surface": "#fffcf7",
+                        "surface-container": "#f6f4ec",
+                        "on-secondary-fixed": "#3c4d2b",
+                        "tertiary-container": "#fec485",
+                        "tertiary": "#875b27",
+                        "secondary-dim": "#4c5e3a",
+                        "on-tertiary-container": "#633d09",
+                        "primary-fixed": "#f6cfc2",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#818178",
+                        "secondary-fixed": "#e3f8c9",
+                        "surface-container-high": "#f0eee4",
+                        "on-primary-fixed-variant": "#6a4e44",
+                        "surface-bright": "#fffcf7",
+                        "on-secondary-fixed-variant": "#586a45",
+                        "tertiary-fixed-dim": "#efb679",
+                        "surface-container-low": "#fcf9f3",
+                        "secondary": "#586a45",
+                        "error-container": "#f56965"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Be Vietnam Pro"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .breathing-circle {
+            animation: breathe 4s ease-in-out infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.15); opacity: 0.1; }
+        }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-50 flex items-center justify-between px-6 py-3 max-w-lg mx-auto bg-white/70 dark:bg-stone-900/70 backdrop-blur-xl rounded-full mt-4 mx-4 shadow-2xl shadow-[#373831]/5">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high ring-2 ring-surface-container-lowest">
+<img alt="User profile" data-alt="Portrait of a serene woman with a soft smile in natural sunlight, high-end photography style with shallow depth of field" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjgB5JPRx8t9a9upKgRUAZp3buZd9ypKx4bswRYEG7Ia7aKLJJThyTku7-eKdjNR-Z_F4A9wuwD926_2tpHIrAemHem9fQfl99viuUpK2_iogWwh2iFJy5z9DxHFsTDUJRZiRzYIOmrzZ4dvTKfHGYWRF8w2uOLHZ9d_igPlji2fR5QTarq2tkdtGxa_70jmiykdDK-2MKTuO_UWbZ_P-lKVSB0YW2mfX0cF12ScD7V7hidiZbxNFfgS5yRCJWvAylSWLO-PR7Wfg"/>
+</div>
+<h1 class="text-xl font-bold text-[#373831] dark:text-[#fcf9f3] font-headline tracking-tight">Sanctuary</h1>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</header>
+<main class="max-w-md mx-auto px-6 pt-12 space-y-12">
+<!-- Processing Status Section -->
+<section class="flex flex-col items-center justify-center text-center space-y-8">
+<div class="relative w-48 h-48 flex items-center justify-center">
+<!-- Organic Breathing Layers -->
+<div class="absolute inset-0 bg-primary/20 rounded-full breathing-circle" style="animation-delay: 0s;"></div>
+<div class="absolute inset-4 bg-primary/15 rounded-full breathing-circle" style="animation-delay: 0.5s;"></div>
+<div class="absolute inset-8 bg-primary/10 rounded-full breathing-circle" style="animation-delay: 1s;"></div>
+<div class="relative z-10 w-24 h-24 bg-surface-container-lowest rounded-full flex items-center justify-center shadow-xl shadow-primary/5">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="graphic_eq">graphic_eq</span>
+</div>
+</div>
+<div class="space-y-2">
+<h2 class="text-2xl font-headline font-bold text-on-surface tracking-tight">Processing Audio...</h2>
+<p class="text-on-surface-variant text-sm px-8">Taking a moment to weave your words into a digital sanctuary.</p>
+</div>
+</section>
+<!-- Real-time Preview Section -->
+<section class="bg-surface-container-low rounded-xl p-8 space-y-6">
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/60 font-headline">Real-time Preview</span>
+<div class="flex gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-secondary/40"></div>
+</div>
+</div>
+<div class="space-y-4">
+<p class="text-lg leading-relaxed text-on-surface/90 font-medium italic">
+                    "The walk today was particularly quiet. I noticed how the light filtered through the oak trees, creating these dancing patterns on the forest floor. It reminded me that..."
+                    <span class="inline-block w-2 h-6 bg-primary/30 align-middle ml-1 rounded-full animate-pulse"></span>
+</p>
+<div class="space-y-2 pt-2">
+<div class="h-4 bg-surface-container-highest/50 rounded-full w-full overflow-hidden relative">
+<div class="shimmer absolute inset-0"></div>
+</div>
+<div class="h-4 bg-surface-container-highest/50 rounded-full w-3/4 overflow-hidden relative">
+<div class="shimmer absolute inset-0"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Action Button with Progress -->
+<section class="space-y-6">
+<div class="relative group">
+<button class="w-full h-16 bg-surface-container-highest text-on-surface-variant font-headline font-semibold rounded-full flex items-center justify-between px-8 opacity-60 cursor-not-allowed" disabled="">
+<span class="flex items-center gap-3">
+<span class="material-symbols-outlined text-lg" data-icon="description">description</span>
+                        Review Full Entry
+                    </span>
+<span class="text-sm font-body">82%</span>
+</button>
+<!-- Progress Pillar Overlay -->
+<div class="absolute bottom-0 left-0 h-1 bg-primary rounded-full transition-all duration-1000 ease-out" style="width: 82%;"></div>
+</div>
+<div class="flex justify-center">
+<button class="text-primary font-headline font-semibold text-sm hover:opacity-80 transition-opacity px-6 py-2 rounded-full">
+                    Cancel Transcription
+                </button>
+</div>
+</section>
+<!-- Aesthetic Card: Contextual Mood -->
+<section class="bg-secondary-container/30 rounded-xl p-6 flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="filter_vintage">filter_vintage</span>
+</div>
+<div>
+<h4 class="text-sm font-bold text-on-secondary-container">Natural Cadence Detected</h4>
+<p class="text-xs text-on-secondary-container/80">Your breathing patterns suggest a state of deep reflection.</p>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center p-3 max-w-md mx-auto bg-white/80 dark:bg-stone-900/80 backdrop-blur-lg rounded-full mb-8 mx-auto w-[92%] shadow-[0_20px_50px_rgba(55,56,49,0.08)]">
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#babaaf] px-4 hover:opacity-80 transition-opacity" href="#">
+<span class="material-symbols-outlined" data-icon="home_max">home_max</span>
+<span class="font-['Be_Vietnam_Pro'] text-[10px] uppercase tracking-widest font-medium mt-1">Journal</span>
+</a>
+<!-- Active Tab: Record (Transcribing) -->
+<a class="flex flex-col items-center justify-center bg-[#8D6E63] text-white rounded-full px-6 py-2 transition-all duration-500 hover:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="mic_none" style="font-variation-settings: 'FILL' 1;">mic_none</span>
+<span class="font-['Be_Vietnam_Pro'] text-[10px] uppercase tracking-widest font-medium mt-1">Record</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#babaaf] px-4 hover:opacity-80 transition-opacity" href="#">
+<span class="material-symbols-outlined" data-icon="auto_stories">auto_stories</span>
+<span class="font-['Be_Vietnam_Pro'] text-[10px] uppercase tracking-widest font-medium mt-1">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#64655c] dark:text-[#babaaf] px-4 hover:opacity-80 transition-opacity" href="#">
+<span class="material-symbols-outlined" data-icon="person_2">person_2</span>
+<span class="font-['Be_Vietnam_Pro'] text-[10px] uppercase tracking-widest font-medium mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

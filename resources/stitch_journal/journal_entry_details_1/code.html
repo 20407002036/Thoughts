@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Journal Entry - Carbon System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'IBM Plex Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .carbon-border { border-bottom: 1px solid #e0e0e0; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#161616",
+                        "error": "#da1e28",
+                        "on-tertiary-container": "#044317",
+                        "surface": "#ffffff",
+                        "error-container": "#fff1f1",
+                        "primary-fixed-dim": "#78a9ff",
+                        "on-secondary-fixed": "#161616",
+                        "background": "#ffffff",
+                        "on-primary-fixed-variant": "#0043ce",
+                        "outline": "#8d8d8d",
+                        "on-error-container": "#750e13",
+                        "primary": "#0f62fe",
+                        "on-surface-variant": "#525252",
+                        "primary-fixed": "#d0e2ff",
+                        "on-tertiary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-container": "#d0e2ff",
+                        "inverse-surface": "#393939",
+                        "surface-container-highest": "#c6c6c6",
+                        "surface-container-high": "#e0e0e0",
+                        "secondary-fixed": "#e0e0e0",
+                        "tertiary-container": "#a7f0ba",
+                        "tertiary-fixed": "#a7f0ba",
+                        "on-tertiary-fixed": "#022d0d",
+                        "tertiary-fixed-dim": "#42be65",
+                        "surface-tint": "#0f62fe",
+                        "inverse-primary": "#78a9ff",
+                        "secondary": "#6f6f6f",
+                        "on-primary-fixed": "#001d6c",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#525252",
+                        "on-secondary-container": "#525252",
+                        "surface-variant": "#f4f4f4",
+                        "surface-bright": "#ffffff",
+                        "outline-variant": "#e0e0e0",
+                        "on-tertiary-fixed-variant": "#044317",
+                        "surface-container": "#f4f4f4",
+                        "on-background": "#161616",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#e0e0e0",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f4f4f4",
+                        "on-primary-container": "#161616",
+                        "inverse-on-surface": "#f4f4f4",
+                        "tertiary": "#198038",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "secondary-container": "#e0e0e0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-white dark:bg-zinc-950 flex justify-between items-center px-4 h-12 w-full fixed top-0 z-50 border-b border-zinc-200 dark:border-zinc-800">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-600 dark:text-blue-500 cursor-pointer">arrow_back</span>
+<h1 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 font-sans antialiased">Journal Entry</h1>
+</div>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400">more_vert</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 mt-12 mb-20 px-4 py-6 max-w-2xl mx-auto w-full">
+<!-- Header Section -->
+<section class="mb-8">
+<p class="text-xs font-medium text-secondary mb-1 uppercase tracking-wider">Oct 24, 2023</p>
+<h2 class="text-2xl font-bold text-on-surface leading-tight">Evening Reflection</h2>
+</section>
+<!-- Audio Player Component -->
+<section class="bg-surface-variant p-4 mb-8 flex flex-col gap-3">
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 bg-primary text-white flex items-center justify-center rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex-1">
+<div class="h-1 bg-surface-container-high w-full relative">
+<div class="absolute top-0 left-0 h-full w-1/3 bg-primary"></div>
+</div>
+<div class="flex justify-between mt-1">
+<span class="text-[10px] text-secondary font-medium">1:24</span>
+<span class="text-[10px] text-secondary font-medium">4:12</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-sm">volume_up</span>
+</div>
+</section>
+<!-- AI Insights Grid (Asymmetric) -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+<!-- Mood Analysis -->
+<div class="bg-surface-variant p-4 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<p class="text-[12px] font-semibold text-secondary uppercase">Mood Analysis</p>
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">sentiment_satisfied</span>
+</div>
+<div class="mt-4">
+<span class="text-lg font-semibold text-on-surface">Calm &amp; Productive</span>
+</div>
+</div>
+<!-- Tags -->
+<div class="bg-surface-variant p-4">
+<p class="text-[12px] font-semibold text-secondary uppercase mb-3">AI Generated Tags</p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-white border border-outline-variant text-[12px] font-medium text-secondary">#Work</span>
+<span class="px-2 py-1 bg-white border border-outline-variant text-[12px] font-medium text-secondary">#Gratitude</span>
+<span class="px-2 py-1 bg-white border border-outline-variant text-[12px] font-medium text-secondary">#Reflections</span>
+</div>
+</div>
+</section>
+<!-- Key Takeaway (Highlighted) -->
+<section class="border-l-4 border-primary bg-primary-container p-6 mb-8">
+<span class="material-symbols-outlined text-primary mb-2">auto_awesome</span>
+<p class="text-lg font-medium text-on-primary-container italic">
+                "Maintaining focus on high-impact tasks today led to a significant reduction in evening anxiety. Consistency in deep work blocks is the key differentiator."
+            </p>
+<p class="text-[12px] font-semibold text-primary mt-4 uppercase">AI Key Takeaway</p>
+</section>
+<!-- Transcription Section -->
+<section class="mb-12">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-secondary text-sm">notes</span>
+<h3 class="text-[12px] font-semibold text-secondary uppercase tracking-widest">Full Transcription</h3>
+</div>
+<div class="prose prose-sm max-w-none text-on-surface leading-relaxed font-normal text-[15px]">
+<p class="mb-4">
+                    Today felt like a turning point in the project. I started the morning with two hours of deep work, specifically focusing on the architectural diagrams. It was quiet, the coffee was perfect, and the logic just flowed. I managed to resolve that bottleneck in the data pipeline that’s been bothering me for a week.
+                </p>
+<p class="mb-4">
+                    Lunch was a quick walk through the park. The autumn air is getting crisp, and it helped clear my head after the intense morning focus. I noticed how much more energized I feel when I take that 20-minute disconnect.
+                </p>
+<p>
+                    Meeting in the afternoon went surprisingly well. The stakeholders were receptive to the new timeline. I felt articulate and grounded. Overall, a very productive day. I need to remember this feeling when things get chaotic—it's all about the morning routine.
+                </p>
+</div>
+</section>
+<!-- Decorative Image -->
+<section class="mb-12">
+<img alt="Workspace inspiration" class="w-full h-48 object-cover grayscale brightness-90 hover:grayscale-0 transition-all duration-700" data-alt="a minimalist desk scene with a notebook, pen, and a cup of coffee in soft morning light with clean shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyzs635B7YzG6aqSob6dOiDfzQ0IJV1O5XoWeeGSHWVFNYa3bmsF2_641Xl6u4oMMSEQ8fpuVRTA4TmY2EDW7z8-4Y-KSVf0zXA44q77Ty0Gx09IgLGEWHXAC3QYDbTf_uTxnhcToMhKfzs2IhNeDKGHeHbRY4ethuPw_zaEQfSr--3oaufInDn7IZCZs5RCKqGqtBH57lr13fyAcfzo2az6g_fimdlFR2D9WCp1pHbLLFngpIDBIkLcdqLrQUAehdRpM3DfdV1Zp5"/>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-2 py-3 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 font-sans text-xs font-medium">
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1 scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">book</span>
+<span>Entries</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-500 p-1 hover:text-blue-500 transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span>Calendar</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-500 p-1 hover:text-blue-500 transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span>Insights</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-500 p-1 hover:text-blue-500 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+</body></html>
