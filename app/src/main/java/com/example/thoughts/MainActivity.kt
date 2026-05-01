@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.thoughts.ui.theme.ThoughtsTheme
+import com.example.thoughts.ui.theme.ThoughtsColors
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -343,7 +344,7 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Background decoration
+            // Background decoration (using Sage for calm tone)
             Icon(
                 Icons.Default.Park,
                 contentDescription = null,
@@ -352,12 +353,12 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
                     .align(Alignment.BottomEnd)
                     .offset(x = 20.dp, y = 20.dp)
                     .blur(1.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                tint = ThoughtsColors.Sage.copy(alpha = 0.08f)
             )
 
             Column(modifier = Modifier.padding(24.dp)) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = ThoughtsColors.Sage.copy(alpha = 0.15f),
                     shape = CircleShape
                 ) {
                     Text(
@@ -367,7 +368,7 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         ),
-                        color = MaterialTheme.colorScheme.secondary
+                        color = ThoughtsColors.Sage
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -388,7 +389,7 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
                 Button(
                     onClick = onStartRecording,
                     shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ThoughtsColors.Sage),
                     modifier = Modifier.height(48.dp)
                 ) {
                     Text("Write Entry", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
@@ -407,8 +408,8 @@ fun QuickVoiceStartCard(onStartRecording: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 12.dp),
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+        colors = CardDefaults.cardColors(containerColor = ThoughtsColors.Clay.copy(alpha = 0.12f)),
+        border = BorderStroke(1.dp, ThoughtsColors.Clay.copy(alpha = 0.2f))
     ) {
         Column(
             modifier = Modifier
@@ -428,13 +429,13 @@ fun QuickVoiceStartCard(onStartRecording: () -> Unit) {
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .background(ThoughtsColors.Clay.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Mic,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = ThoughtsColors.Clay,
                         modifier = Modifier.size(32.dp)
                     )
                 }

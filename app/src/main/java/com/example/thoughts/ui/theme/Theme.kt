@@ -1,6 +1,7 @@
 package com.example.thoughts.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
@@ -45,6 +46,14 @@ private val LightColorScheme = lightColorScheme(
     outline = Outline,
     outlineVariant = OutlineVariant
 )
+
+// Extension for mindful semantic colors (not standard Material3 slots)
+// Use via MaterialTheme.colorScheme properties or reference Color singletons directly
+object ThoughtsColors {
+    val Sage: Color = com.example.thoughts.ui.theme.Sage
+    val Clay: Color = com.example.thoughts.ui.theme.Clay
+    val Blush: Color = com.example.thoughts.ui.theme.Blush
+}
 
 @Composable
 fun ThoughtsTheme(

@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.thoughts.ui.theme.ThoughtsColors
 import kotlinx.coroutines.launch
 
 data class SettingsItem(
@@ -107,7 +108,7 @@ fun SettingsScreen(navController: NavHostController, authViewModel: AuthViewMode
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    colors = CardDefaults.cardColors(containerColor = ThoughtsColors.Blush.copy(alpha = 0.12f))
                 ) {
                     Row(
                         modifier = Modifier
@@ -121,7 +122,7 @@ fun SettingsScreen(navController: NavHostController, authViewModel: AuthViewMode
                                 .width(56.dp)
                                 .height(56.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = ThoughtsColors.Blush.copy(alpha = 0.3f),
                                     shape = RoundedCornerShape(12.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -129,7 +130,7 @@ fun SettingsScreen(navController: NavHostController, authViewModel: AuthViewMode
                             Text(
                                 "M",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = ThoughtsColors.Blush
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
