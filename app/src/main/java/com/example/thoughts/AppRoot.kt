@@ -23,6 +23,7 @@ fun AppRoot() {
         ThoughtsNavHost(
             navController = navController,
             journalViewModel = journalViewModel,
+            authViewModel = authViewModel,
             onLogout = {
                 scope.launch {
                     authViewModel.logout()

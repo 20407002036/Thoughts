@@ -12,6 +12,11 @@ sealed class Screen(val route: String) {
     object Record : Screen("record")
     object Review : Screen("review")
     object Archives : Screen("archives")
+    object Processing : Screen("processing")
+    object EntryDetail : Screen("entry/{entryId}")
+    object Profile : Screen("profile")
+    object Insights : Screen("insights")
+    object Settings : Screen("settings")
 }
 
 @Composable
@@ -19,6 +24,7 @@ fun ThoughtsNavHost(
     navController: NavHostController,
     journalViewModel: JournalViewModel,
     onLogout: () -> Unit,
+    authViewModel: AuthViewModel? = null,
     startDestination: String = Screen.Dashboard.route,
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
@@ -28,11 +34,27 @@ fun ThoughtsNavHost(
         composable(Screen.Record.route) {
             RecordScreen(navController, journalViewModel)
         }
+        composable(Screen.Processing.route) {
+            ProcessingScreen(navController, journalViewModel)
+        }
         composable(Screen.Review.route) {
             ReviewScreen(navController, journalViewModel)
         }
+        composable(Screen.EntryDetail.route) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getString("entryId") ?: ""
+            EntryDetailScreen(navController, journalViewModel, entryId)
+        }
         composable(Screen.Archives.route) {
             ArchivesScreen(navController)
+        }
+        composable(Screen.Profile.route) {
+            ProfileScreen(navController, journalViewModel)
+        }
+        composable(Screen.Insights.route) {
+            InsightsScreen(navController, journalViewModel)
+        }
+        composable(Screen.Settings.route) {
+            SettingsScreen(navController, authViewModel ?: AuthViewModel())
         }
     }
 }

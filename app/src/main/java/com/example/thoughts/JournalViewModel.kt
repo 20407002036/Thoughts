@@ -51,10 +51,63 @@ class JournalViewModel(
     private val _backendResult = MutableStateFlow<IngestionResponse?>(null)
     val backendResult: StateFlow<IngestionResponse?> = _backendResult.asStateFlow()
 
+    private val _selectedEntry = MutableStateFlow<JournalEntry?>(null)
+    val selectedEntry: StateFlow<JournalEntry?> = _selectedEntry.asStateFlow()
+
     private var timerJob: Job? = null
     private var audioFile: File? = null
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
+
+    // Sample archive entries (in production, these would come from backend/database)
+    private val archivedEntries = mutableListOf(
+        JournalEntry(
+            id = "architects-resilience",
+            recordingSessionId = "session-1",
+            title = "The Morning",
+            createdAtMillis = System.currentTimeMillis() - 86400000,
+            recordedAtMillis = System.currentTimeMillis() - 86400000,
+            transcript = Transcript(
+                id = "transcript-1",
+                recordingSessionId = "session-1",
+                fullText = "I woke up today with a strange sense of clarity. The project at the firm has been weighing heavily on me, but as I sat with my coffee this morning, looking out at the skyline, the architecture of the problem started to simplify. I realized that I've been prioritizing the 'monumental' over the 'intimate.' If we want people to feel truly grounded in the new museum wing, we need to design for the moments between the exhibits. That's where the soul lives."
+            ),
+            tags = listOf(
+                JournalTag("architecture", TagSource.Generated),
+                JournalTag("mindfulness", TagSource.Generated),
+                JournalTag("productivity", TagSource.Generated)
+            ),
+            moodAnalysis = MoodAnalysis(
+                label = "Reflection & Gratitude",
+                score = 0.8f,
+                confidence = 0.9f,
+                explanation = "You are shifting your architectural focus from monumental structures to intimate human experiences."
+            )
+        ),
+        JournalEntry(
+            id = "morning-stillness",
+            recordingSessionId = "session-2",
+            title = "Morning",
+            createdAtMillis = System.currentTimeMillis() - 172800000,
+            recordedAtMillis = System.currentTimeMillis() - 172800000,
+            transcript = Transcript(
+                id = "transcript-2",
+                recordingSessionId = "session-2",
+                fullText = "There's a quality to the silence at dawn that feels almost sacred. The world hasn't yet decided what it wants from me. I let my coffee cool while I just listened. Birds. The hum of the refrigerator. My own breathing."
+            ),
+            tags = listOf(
+                JournalTag("mindfulness", TagSource.Generated),
+                JournalTag("morning", TagSource.Generated),
+                JournalTag("presence", TagSource.Generated)
+            ),
+            moodAnalysis = MoodAnalysis(
+                label = "Calm & Presence",
+                score = 0.9f,
+                confidence = 0.95f,
+                explanation = "A meditative reflection on the value of unstructured early hours."
+            )
+        )
+    )
 
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
@@ -231,6 +284,13 @@ class JournalViewModel(
         uploadRetryCount = 0
         uploadAudioToBackend()
     }
+
+    fun loadEntry(entryId: String) {
+        val entry = archivedEntries.find { it.id == entryId }
+        _selectedEntry.value = entry
+    }
+
+    fun listArchivedEntries(): List<JournalEntry> = archivedEntries
 
     private fun processingComplete(response: IngestionResponse) {
         _backendResult.value = response

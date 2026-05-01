@@ -60,8 +60,8 @@ fun ArchivesScreen(navController: NavHostController) {
             item {
                 MindfulArchiveGroupHeader("September 2023", "12 entries")
             }
-            items(septemberEntries) { entry ->
-                MindfulArchiveEntryCard(entry)
+                items(septemberEntries) { entry ->
+                    MindfulArchiveEntryCard(entry, navController)
             }
             
             item { Spacer(modifier = Modifier.height(32.dp)) }
@@ -70,8 +70,8 @@ fun ArchivesScreen(navController: NavHostController) {
             item {
                 MindfulArchiveGroupHeader("August 2023", "28 entries")
             }
-            items(augustEntries) { entry ->
-                MindfulArchiveEntryCard(entry)
+                items(augustEntries) { entry ->
+                    MindfulArchiveEntryCard(entry, navController)
             }
         }
     }
@@ -189,6 +189,7 @@ fun MindfulArchiveGroupHeader(title: String, countText: String) {
 }
 
 data class MindfulArchiveEntry(
+    val id: String,
     val title: String,
     val date: String,
     val summary: String,
@@ -199,6 +200,7 @@ data class MindfulArchiveEntry(
 
 val septemberEntries = listOf(
     MindfulArchiveEntry(
+        "architectural-balance",
         "The Architectural Balance of Routine",
         "Sept 14, 2023 • 08:45 AM",
         "Today I explored the intersection of structured workflows and creative freedom. Finding the stillness within the chaos of the city...",
@@ -206,6 +208,7 @@ val septemberEntries = listOf(
         Icons.Default.AutoAwesome
     ),
     MindfulArchiveEntry(
+        "navigating-friction",
         "Navigating Technical Friction",
         "Sept 12, 2023 • 10:12 PM",
         "The project's architectural constraints are becoming clearer. It is not about the limitations, but how we dance within them...",
@@ -217,6 +220,7 @@ val septemberEntries = listOf(
 
 val augustEntries = listOf(
     MindfulArchiveEntry(
+        "solitude-isolation",
         "Solitude vs Isolation",
         "Aug 29, 2023 • 06:20 AM",
         "Reflecting on the difference between being alone and feeling lonely. True solitude is the curator of the soul's gallery...",
@@ -227,11 +231,12 @@ val augustEntries = listOf(
 )
 
 @Composable
-fun MindfulArchiveEntryCard(entry: MindfulArchiveEntry) {
+fun MindfulArchiveEntryCard(entry: MindfulArchiveEntry, navController: NavHostController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp)
+            .clickable { navController.navigate("entry/${entry.id}") },
         shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
