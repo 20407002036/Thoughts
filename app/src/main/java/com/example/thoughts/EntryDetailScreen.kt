@@ -151,7 +151,7 @@ private fun formatDate(millis: Long): String {
     val cal = java.util.Calendar.getInstance()
     cal.timeInMillis = millis
     val sdf = java.text.SimpleDateFormat("MMM dd, yyyy • hh:mm a", java.util.Locale.US)
-    return sdf.format(cal.time).uppercase()
+    return sdf.format(cal.time).uppercase(Locale.US)
 }
 
 // Fallback entry if not found
