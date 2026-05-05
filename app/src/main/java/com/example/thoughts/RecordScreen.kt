@@ -246,7 +246,7 @@ fun RecordScreen(navController: NavHostController, journalViewModel: JournalView
                         IconButton(
                             onClick = {
                                 journalViewModel.finishRecordingAndUpload()
-                                navController.navigate(Screen.Review.route)
+                                navController.navigate(Screen.Processing.route)
                             },
                             modifier = Modifier
                                 .size(56.dp)

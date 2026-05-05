@@ -19,6 +19,8 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
 }
 
+fun entryDetailRoute(entryId: String): String = Screen.EntryDetail.route.replace("{entryId}", entryId)
+
 @Composable
 fun ThoughtsNavHost(
     navController: NavHostController,
@@ -45,7 +47,7 @@ fun ThoughtsNavHost(
             EntryDetailScreen(navController, journalViewModel, entryId)
         }
         composable(Screen.Archives.route) {
-            ArchivesScreen(navController)
+            ArchivesScreen(navController, journalViewModel)
         }
         composable(Screen.Profile.route) {
             ProfileScreen(navController, journalViewModel)

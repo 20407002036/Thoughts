@@ -33,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,12 +46,15 @@ import androidx.navigation.NavHostController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavHostController, journalViewModel: JournalViewModel) {
+    val session = AuthSessionManager.session.collectAsState().value
     val archivedEntries = journalViewModel.listArchivedEntries()
     
     // Derive simple stats from archived entries
     val entryCount = archivedEntries.size
-    val voiceMinutes = (archivedEntries.sumOf { it.transcript.fullText.split(" ").size / 130 }).coerceAtLeast(1) // rough word-to-minutes conversion
-    val streak = 12 // hardcoded for now; would come from backend in production
+    val voiceMinutes = (archivedEntries.sumOf { it.summary.split(" ").size / 130 }).coerceAtLeast(1) // rough word-to-minutes conversion
+    val streak = entryCount.coerceAtLeast(1)
+    val displayName = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "Your profile"
+    val email = session?.email?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "Connected account"
 
     Scaffold(
         topBar = { MindfulTopAppBar() },
@@ -79,18 +83,18 @@ fun ProfileScreen(navController: NavHostController, journalViewModel: JournalVie
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "M",
+                                displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
                             style = MaterialTheme.typography.headlineLarge,
                             color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     Text(
-                        "Marcus Vale",
+                        displayName,
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        "Joined March 2023 • The Stoic Architect",
+                        email,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

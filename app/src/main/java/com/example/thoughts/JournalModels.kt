@@ -164,6 +164,17 @@ data class IngestionAnalysis(
 @Serializable
 data class IngestionResponse(
     val id: String? = null,
+    @SerialName("recording_id")
+    val recordingId: String? = null,
+    val status: String? = null,
+    @SerialName("progress_percent")
+    val progressPercent: Int? = null,
+    @SerialName("error_message")
+    val errorMessage: String? = null,
+    @SerialName("entry_id")
+    val entryId: String? = null,
+    @SerialName("draft_id")
+    val draftId: String? = null,
     @SerialName("user_id")
     val userId: String? = null,
     val transcript: String = "",
@@ -198,6 +209,141 @@ data class IngestionResponse(
 
     val processingDurationMs: Long?
         get() = null
+}
+
+@Serializable
+data class RecordingUploadResponse(
+    @SerialName("recording_id")
+    val recordingId: String,
+    val status: String,
+    @SerialName("progress_percent")
+    val progressPercent: Int = 0,
+    @SerialName("error_message")
+    val errorMessage: String? = null,
+    @SerialName("entry_id")
+    val entryId: String? = null,
+    @SerialName("draft_id")
+    val draftId: String? = null,
+)
+
+@Serializable
+data class EntryTranscriptResponse(
+    @SerialName("full_text")
+    val fullText: String,
+)
+
+@Serializable
+data class EntryTagResponse(
+    val name: String,
+    val source: String? = null,
+)
+
+@Serializable
+data class EntryMoodAnalysisResponse(
+    val label: String? = null,
+    val score: Float? = null,
+    val confidence: Float? = null,
+    val explanation: String? = null,
+)
+
+@Serializable
+data class JournalEntryResponse(
+    val id: String,
+    @SerialName("recording_session_id")
+    val recordingSessionId: String,
+    val title: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null,
+    @SerialName("recorded_at")
+    val recordedAt: String? = null,
+    val transcript: EntryTranscriptResponse? = null,
+    val tags: List<EntryTagResponse> = emptyList(),
+    @SerialName("mood_analysis")
+    val moodAnalysis: EntryMoodAnalysisResponse? = null,
+    val takeaway: String? = null,
+    val summary: String? = null,
+    val highlights: List<String> = emptyList(),
+)
+
+@Serializable
+data class JournalEntrySummaryResponse(
+    val id: String,
+    @SerialName("entry_id")
+    val entryId: String? = null,
+    val title: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null,
+    val summary: String? = null,
+    val status: String? = null,
+    @SerialName("mood_label")
+    val moodLabel: String? = null,
+)
+
+@Serializable
+data class JournalEntriesResponse(
+    val entries: List<JournalEntrySummaryResponse> = emptyList(),
+    val limit: Int? = null,
+    val offset: Int? = null,
+    val total: Int? = null,
+)
+
+data class ArchiveEntrySummary(
+    val id: String,
+    val title: String,
+    val createdAtMillis: Long,
+    val summary: String,
+    val status: String,
+    val moodLabel: String? = null,
+)
+
+fun JournalEntryResponse.toJournalEntry(): JournalEntry {
+    val createdAtMillis = createdAt?.let { parseIso8601ToMillis(it) } ?: System.currentTimeMillis()
+    val recordedAtMillis = recordedAt?.let { parseIso8601ToMillis(it) } ?: createdAtMillis
+
+    return JournalEntry(
+        id = id,
+        recordingSessionId = recordingSessionId,
+        title = title,
+        createdAtMillis = createdAtMillis,
+        recordedAtMillis = recordedAtMillis,
+        transcript = Transcript(
+            id = "transcript-$id",
+            recordingSessionId = recordingSessionId,
+            fullText = transcript?.fullText.orEmpty(),
+        ),
+        tags = tags.map { JournalTag(name = it.name) },
+        moodAnalysis = moodAnalysis?.let {
+            val label = it.label ?: "Reflection"
+            MoodAnalysis(
+                label = label,
+                score = it.score ?: 0f,
+                confidence = it.confidence,
+                explanation = it.explanation,
+            )
+        },
+        takeaway = takeaway ?: summary,
+        status = JournalEntryStatus.Ready,
+    )
+}
+
+fun JournalEntrySummaryResponse.toArchiveEntrySummary(): ArchiveEntrySummary {
+    val createdAtMillis = createdAt?.let { parseIso8601ToMillis(it) } ?: System.currentTimeMillis()
+    return ArchiveEntrySummary(
+        id = entryId ?: id,
+        title = title.orEmpty().ifBlank { "Journal entry" },
+        createdAtMillis = createdAtMillis,
+        summary = summary.orEmpty(),
+        status = status.orEmpty(),
+        moodLabel = moodLabel,
+    )
+}
+
+private fun parseIso8601ToMillis(value: String): Long {
+    return runCatching {
+        java.time.Instant.parse(value).toEpochMilli()
+    }.getOrElse {
+        System.currentTimeMillis()
+    }
 }
 fun JournalEntryDraft.toJournalEntry(
     transcriptId: String,

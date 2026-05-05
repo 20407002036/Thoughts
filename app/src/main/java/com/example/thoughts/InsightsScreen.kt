@@ -45,7 +45,7 @@ fun InsightsScreen(navController: NavHostController, journalViewModel: JournalVi
     // Derive mood distribution from entries
     val moodCounts = mutableMapOf<String, Int>()
     archivedEntries.forEach { entry ->
-        entry.moodAnalysis?.label?.let { mood ->
+        entry.moodLabel?.let { mood ->
             moodCounts[mood] = (moodCounts[mood] ?: 0) + 1
         }
     }
@@ -53,15 +53,6 @@ fun InsightsScreen(navController: NavHostController, journalViewModel: JournalVi
     val moodDistribution = moodCounts.map { (label, count) ->
         MoodDistributionItem(label, (count * 100) / totalMoods)
     }.sortedByDescending { it.percentage }
-
-    // Collect all themes/tags
-    val themeFreq = mutableMapOf<String, Int>()
-    archivedEntries.forEach { entry ->
-        entry.tags.forEach { tag ->
-            themeFreq[tag.name] = (themeFreq[tag.name] ?: 0) + 1
-        }
-    }
-    val topThemes = themeFreq.entries.sortedByDescending { it.value }.take(7).map { it.key }
 
     Scaffold(
         topBar = { MindfulTopAppBar() },
@@ -219,43 +210,6 @@ fun InsightsScreen(navController: NavHostController, journalViewModel: JournalVi
                             style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                    }
-                }
-            }
-
-            // Top themes
-            if (topThemes.isNotEmpty()) {
-                item {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Top Themes",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                fontSize = 10.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            topThemes.forEach { theme ->
-                                Card(
-                                    modifier = Modifier,
-                                    shape = CircleShape,
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                                ) {
-                                    Text(
-                                        "#$theme",
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
                     }
                 }
             }

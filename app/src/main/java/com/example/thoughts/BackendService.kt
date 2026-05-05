@@ -8,13 +8,16 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Response
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 import okhttp3.MultipartBody
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -25,13 +28,25 @@ private const val TAG = "BackendService"
 interface JournalApiService {
     
     @Multipart
-    @POST("v1/journals/ingest")
-    suspend fun uploadAudioForTranscription(
+    @POST("v1/recordings")
+    suspend fun uploadRecording(
         @Header("Authorization") authorization: String,
         @Part audio: MultipartBody.Part,
         @Part("duration_ms") durationMs: String,
         @Part("locale") locale: String = "en-US",
-    ): IngestionResponse
+
+    ): RecordingUploadResponse
+
+    @GET("v1/entries/{entryId}")
+    suspend fun getEntry(
+        @Header("Authorization") authorization: String,
+        @Path("entryId") entryId: String,
+    ): JournalEntryResponse
+    
+    @GET("v1/entries")
+    suspend fun getEntries(
+        @Header("Authorization") authorization: String,
+    ): JournalEntriesResponse
 }
 
 // Singleton BackendService
@@ -79,7 +94,7 @@ object BackendService {
         audioFile: File,
         durationMs: Long,
         locale: String = "en-US",
-    ): Result<IngestionResponse> {
+    ): Result<RecordingUploadResponse> {
         return try {
             Result.success(uploadAudioOnce(audioFile, durationMs, locale))
         } catch (e: HttpException) {
@@ -102,7 +117,7 @@ object BackendService {
         audioFile: File,
         durationMs: Long,
         locale: String,
-    ): IngestionResponse {
+    ): RecordingUploadResponse {
         Log.d(TAG, "Uploading audio: ${audioFile.name} (${audioFile.length()} bytes, ${durationMs}ms)")
 
         if (!audioFile.exists()) {
@@ -116,15 +131,73 @@ object BackendService {
         val requestBody = audioFile.asRequestBody("audio/m4a".toMediaType())
         val part = MultipartBody.Part.createFormData("audio", audioFile.name, requestBody)
 
-        val response = apiService.uploadAudioForTranscription(
+        val response = apiService.uploadRecording(
             authorization = authorization,
             audio = part,
             durationMs = durationMs.toString(),
             locale = locale,
         )
 
-        Log.d(TAG, "Upload successful. Transcript length: ${response.transcript.length}")
+        Log.d(TAG, "Upload successful. Recording id: ${response.recordingId}, entry id: ${response.entryId}")
         return response
+    }
+
+    suspend fun fetchArchivedEntries(): Result<List<ArchiveEntrySummary>> {
+        return try {
+            val authorization = AuthSessionManager.authorizationHeader()
+                ?: return Result.failure(IllegalStateException("Sign in before loading your archives."))
+
+            val response = apiService.getEntries(authorization = authorization)
+            Result.success(response.entries.map { it.toArchiveEntrySummary() })
+        } catch (e: HttpException) {
+            if (e.code() == 401 && refreshSessionIfNeeded()) {
+                try {
+                    val retryAuthorization = AuthSessionManager.authorizationHeader()
+                        ?: return Result.failure(IllegalStateException("Sign in before loading your archives."))
+                    val retryResponse = apiService.getEntries(authorization = retryAuthorization)
+                    Result.success(retryResponse.entries.map { it.toArchiveEntrySummary() })
+                } catch (retryError: Exception) {
+                    Result.failure(retryError)
+                }
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch archive entries", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchEntry(entryId: String): Result<JournalEntry> {
+        return try {
+            val authorization = AuthSessionManager.authorizationHeader()
+                ?: return Result.failure(IllegalStateException("Sign in before loading a journal entry."))
+
+            val response = apiService.getEntry(
+                authorization = authorization,
+                entryId = entryId,
+            )
+            Result.success(response.toJournalEntry())
+        } catch (e: HttpException) {
+            if (e.code() == 401 && refreshSessionIfNeeded()) {
+                try {
+                    val retryAuthorization = AuthSessionManager.authorizationHeader()
+                        ?: return Result.failure(IllegalStateException("Sign in before loading a journal entry."))
+                    val retryResponse = apiService.getEntry(
+                        authorization = retryAuthorization,
+                        entryId = entryId,
+                    )
+                    Result.success(retryResponse.toJournalEntry())
+                } catch (retryError: Exception) {
+                    Result.failure(retryError)
+                }
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch entry", e)
+            Result.failure(e)
+        }
     }
 
     private suspend fun refreshSessionIfNeeded(): Boolean {

@@ -59,55 +59,8 @@ class JournalViewModel(
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
 
-    // Sample archive entries (in production, these would come from backend/database)
-    private val archivedEntries = mutableListOf(
-        JournalEntry(
-            id = "architects-resilience",
-            recordingSessionId = "session-1",
-            title = "The Morning",
-            createdAtMillis = System.currentTimeMillis() - 86400000,
-            recordedAtMillis = System.currentTimeMillis() - 86400000,
-            transcript = Transcript(
-                id = "transcript-1",
-                recordingSessionId = "session-1",
-                fullText = "I woke up today with a strange sense of clarity. The project at the firm has been weighing heavily on me, but as I sat with my coffee this morning, looking out at the skyline, the architecture of the problem started to simplify. I realized that I've been prioritizing the 'monumental' over the 'intimate.' If we want people to feel truly grounded in the new museum wing, we need to design for the moments between the exhibits. That's where the soul lives."
-            ),
-            tags = listOf(
-                JournalTag("architecture", TagSource.Generated),
-                JournalTag("mindfulness", TagSource.Generated),
-                JournalTag("productivity", TagSource.Generated)
-            ),
-            moodAnalysis = MoodAnalysis(
-                label = "Reflection & Gratitude",
-                score = 0.8f,
-                confidence = 0.9f,
-                explanation = "You are shifting your architectural focus from monumental structures to intimate human experiences."
-            )
-        ),
-        JournalEntry(
-            id = "morning-stillness",
-            recordingSessionId = "session-2",
-            title = "Morning",
-            createdAtMillis = System.currentTimeMillis() - 172800000,
-            recordedAtMillis = System.currentTimeMillis() - 172800000,
-            transcript = Transcript(
-                id = "transcript-2",
-                recordingSessionId = "session-2",
-                fullText = "There's a quality to the silence at dawn that feels almost sacred. The world hasn't yet decided what it wants from me. I let my coffee cool while I just listened. Birds. The hum of the refrigerator. My own breathing."
-            ),
-            tags = listOf(
-                JournalTag("mindfulness", TagSource.Generated),
-                JournalTag("morning", TagSource.Generated),
-                JournalTag("presence", TagSource.Generated)
-            ),
-            moodAnalysis = MoodAnalysis(
-                label = "Calm & Presence",
-                score = 0.9f,
-                confidence = 0.95f,
-                explanation = "A meditative reflection on the value of unstructured early hours."
-            )
-        )
-    )
+    private val _archivedEntries = MutableStateFlow<List<ArchiveEntrySummary>>(emptyList())
+    val archivedEntries: StateFlow<List<ArchiveEntrySummary>> = _archivedEntries.asStateFlow()
 
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
@@ -258,9 +211,14 @@ class JournalViewModel(
             )
 
             result.onSuccess { response ->
-                Log.d(TAG, "Upload successful: ${response.transcript.take(100)}")
+                Log.d(TAG, "Upload successful: recording=${response.recordingId}, entry=${response.entryId}")
                 _uploadState.value = AudioUploadState.Processing
-                processingComplete(response)
+                val entryId = response.entryId
+                if (!entryId.isNullOrBlank()) {
+                    loadEntryFromBackend(entryId, response)
+                } else {
+                    processingFailed("Upload completed but the backend did not return an entry id.")
+                }
             }
 
             result.onFailure { exception ->
@@ -286,39 +244,78 @@ class JournalViewModel(
     }
 
     fun loadEntry(entryId: String) {
-        val entry = archivedEntries.find { it.id == entryId }
-        _selectedEntry.value = entry
+        viewModelScope.launch {
+            BackendService.fetchEntry(entryId)
+                .onSuccess { entry ->
+                    _selectedEntry.value = entry
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Failed to load entry $entryId", throwable)
+                    _selectedEntry.value = null
+                }
+        }
     }
 
-    fun listArchivedEntries(): List<JournalEntry> = archivedEntries
+    fun loadArchivedEntries() {
+        viewModelScope.launch {
+            BackendService.fetchArchivedEntries()
+                .onSuccess { entries ->
+                    _archivedEntries.value = entries
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Failed to load archive entries", throwable)
+                    _archivedEntries.value = emptyList()
+                }
+        }
+    }
 
-    private fun processingComplete(response: IngestionResponse) {
-        _backendResult.value = response
-        _uploadState.value = AudioUploadState.Uploaded
+    fun listArchivedEntries(): List<ArchiveEntrySummary> = archivedEntries.value
 
-        // Update draft with backend results
-        val tags = response.tags.map { JournalTag(it, TagSource.Generated) }
-        val moodLabel = response.moodLabel
-        val mood = if (moodLabel != null) {
-            MoodAnalysis(
-                label = moodLabel,
-                score = response.moodScore ?: 0f,
-                confidence = response.moodConfidence,
-                explanation = response.moodExplanation,
-            )
-        } else null
+    private fun loadEntryFromBackend(entryId: String, response: RecordingUploadResponse) {
+        viewModelScope.launch {
+            BackendService.fetchEntry(entryId)
+                .onSuccess { entry ->
+                    _backendResult.value = IngestionResponse(
+                        id = entry.id,
+                        recordingId = response.recordingId,
+                        status = response.status,
+                        progressPercent = response.progressPercent,
+                        errorMessage = response.errorMessage,
+                        entryId = entry.id,
+                        draftId = response.draftId,
+                        transcript = entry.transcript.fullText,
+                        audioSignedUrl = entry.audioAsset?.remoteUrl,
+                        createdAt = System.currentTimeMillis().toString(),
+                    )
+                    _selectedEntry.value = entry
 
-        val updatedDraft = currentDraftOrDefault().copy(
-            transcriptText = response.transcript,
-            tags = tags,
-            moodAnalysis = mood,
-            updatedAtMillis = System.currentTimeMillis(),
-        )
-        saveDraft(updatedDraft)
+                    val updatedDraft = JournalEntryDraft(
+                        id = response.draftId ?: entry.id,
+                        recordingSessionId = entry.recordingSessionId,
+                        title = entry.title,
+                        transcriptText = entry.transcript.fullText,
+                        audioAsset = entry.audioAsset,
+                        tags = entry.tags,
+                        moodAnalysis = entry.moodAnalysis,
+                        takeaway = entry.takeaway,
+                        updatedAtMillis = System.currentTimeMillis(),
+                    )
+                    saveDraft(updatedDraft)
 
-        // Cleanup audio file after successful upload
-        audioFile?.let { AudioFileManager.deleteAudioFile(it) }
-        audioFile = null
+                    _uploadState.value = AudioUploadState.Uploaded
+                    audioFile?.let { AudioFileManager.deleteAudioFile(it) }
+                    audioFile = null
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Failed to load uploaded entry $entryId", throwable)
+                    processingFailed(throwable.message ?: "Could not load the uploaded journal entry.")
+                }
+        }
+    }
+
+    private fun processingFailed(message: String) {
+        _uploadState.value = AudioUploadState.Failed
+        _uploadError.value = message
     }
 
     fun updateTranscriptText(text: String) {

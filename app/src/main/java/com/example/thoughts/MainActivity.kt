@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ChevronRight
@@ -54,6 +55,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -92,6 +95,11 @@ fun MindfulTopAppBar(
     showClose: Boolean = false,
     onClose: () -> Unit = {}
 ) {
+    val session by AuthSessionManager.session.collectAsState()
+    val avatarLabel = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() }
+        ?: session?.email?.trim().orEmpty().takeIf { it.isNotBlank() }
+        ?: "?"
+
     TopAppBar(
         title = {
             Row(
@@ -135,9 +143,8 @@ fun MindfulTopAppBar(
                             .clip(CircleShape)
                             .border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                     ) {
-                        // Placeholder for avatar
                         Text(
-                            "M",
+                            avatarLabel.first().uppercaseChar().toString(),
                             modifier = Modifier.align(Alignment.Center),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                         )
@@ -190,10 +197,10 @@ fun MindfulBottomNavigation(navController: NavHostController) {
                 label = "Archives"
             )
             MindfulNavItem(
-                selected = false,
-                onClick = { /* Settings logic */ },
-                icon = Icons.Default.Settings,
-                label = "Settings"
+                selected = currentRoute == Screen.Settings.route,
+                onClick = { navController.navigate(Screen.Settings.route) },
+                icon = Icons.Default.AccountCircle,
+                label = "Account"
             )
         }
     }
@@ -279,13 +286,16 @@ fun DashboardScreen(navController: NavHostController, onLogout: () -> Unit) {
 
 @Composable
 fun DashboardHeader() {
+    val session by AuthSessionManager.session.collectAsState()
+    val displayName = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "there"
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Text(
-            "GOOD MORNING, MARCUS",
+            "Welcome, ${displayName}",
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
@@ -324,7 +334,7 @@ fun DashboardHeader() {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    "12 DAY STREAK",
+                    "JOURNAL READY",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -373,14 +383,14 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    "What was one small win today?",
+                    "Your next prompt will appear here.",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(0.8f)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    "Reflecting on minor victories builds the foundation for monumental shifts.",
+                    "Once the backend prompt endpoint is live, this card will display the real daily prompt.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth(0.8f)

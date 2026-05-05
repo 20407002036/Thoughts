@@ -35,7 +35,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,6 +64,10 @@ data class SettingsSection(
 @Composable
 fun SettingsScreen(navController: NavHostController, authViewModel: AuthViewModel) {
     val scope = rememberCoroutineScope()
+    val session by AuthSessionManager.session.collectAsState()
+    val displayName = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "Connected account"
+    val email = session?.email?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "Signed in"
+    val avatarLabel = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
 
     val settingsSections = listOf(
         SettingsSection(
@@ -128,18 +134,18 @@ fun SettingsScreen(navController: NavHostController, authViewModel: AuthViewMode
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "M",
+                                avatarLabel,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = ThoughtsColors.Blush
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Marcus",
+                                displayName,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                "marcus@thoughts.app • 12 day streak",
+                                email,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
