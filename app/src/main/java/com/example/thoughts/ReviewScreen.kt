@@ -67,6 +67,7 @@ fun ReviewScreen(navController: NavHostController, journalViewModel: JournalView
     val draft = journalViewModel.currentDraft.collectAsState().value ?: createFallbackDraft()
     val uploadState = journalViewModel.uploadState.collectAsState().value
     val uploadError = journalViewModel.uploadError.collectAsState().value
+    val backendResult = journalViewModel.backendResult.collectAsState().value
 
     Scaffold(
         topBar = {
@@ -172,12 +173,12 @@ fun ReviewScreen(navController: NavHostController, journalViewModel: JournalView
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 // Hero Header
-                ReviewHeroHeader(draft)
+                ReviewHeroHeader(draft, backendResult)
 
                 Spacer(modifier = Modifier.height(48.dp))
 
                 // Transcription Block
-                MindfulTranscriptionCard(draft)
+                MindfulTranscriptionCard(draft, backendResult)
 
                 Spacer(modifier = Modifier.height(32.dp))
 
@@ -187,22 +188,22 @@ fun ReviewScreen(navController: NavHostController, journalViewModel: JournalView
                     horizontalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
-                        MindfulMoodAnalysisCard(draft.moodAnalysis)
+                        MindfulMoodAnalysisCard(draft.moodAnalysis, backendResult)
                     }
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
-                MindfulThemesCard(draft.tags)
+                MindfulThemesCard(draft.tags, backendResult)
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // AI Summary Card
-                AiSummaryCard(draft.takeaway)
+                AiSummaryCard(draft.takeaway, backendResult)
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // Key Insights
-                KeyInsightsSection()
+                KeyInsightsSection(backendResult)
 
                 Spacer(modifier = Modifier.height(120.dp))
             }
@@ -214,7 +215,11 @@ fun ReviewScreen(navController: NavHostController, journalViewModel: JournalView
 }
 
 @Composable
-fun ReviewHeroHeader(draft: JournalEntryDraft) {
+fun ReviewHeroHeader(draft: JournalEntryDraft, backendResult: IngestionResponse?) {
+    val title = backendResult?.analysis?.title?.takeIf { it.isNotBlank() }
+        ?: draft.title?.takeIf { it.isNotBlank() }
+        ?: "Journal Entry"
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -245,10 +250,7 @@ fun ReviewHeroHeader(draft: JournalEntryDraft) {
         
         Text(
             buildAnnotatedString {
-                append("The Morning\n")
-                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))) {
-                    append("Vantage Point.")
-                }
+                append(title)
             },
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold,
@@ -287,7 +289,13 @@ fun ReviewHeroHeader(draft: JournalEntryDraft) {
 }
 
 @Composable
-fun MindfulTranscriptionCard(draft: JournalEntryDraft) {
+fun MindfulTranscriptionCard(draft: JournalEntryDraft, backendResult: IngestionResponse?) {
+    val transcriptText = backendResult?.transcript?.takeIf { it.isNotBlank() }
+        ?: draft.transcriptText
+    val wordCount = transcriptText.split(Regex("\\s+"))
+        .filter { it.isNotBlank() }
+        .size
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(40.dp),
@@ -324,7 +332,7 @@ fun MindfulTranscriptionCard(draft: JournalEntryDraft) {
                     shape = CircleShape
                 ) {
                     Text(
-                        "942 WORDS",
+                        "$wordCount WORDS",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
@@ -339,7 +347,7 @@ fun MindfulTranscriptionCard(draft: JournalEntryDraft) {
             Spacer(modifier = Modifier.height(32.dp))
             
             Text(
-                draft.transcriptText.ifBlank { "\"I woke up today with a strange sense of clarity. The project at the firm has been weighing heavily on me, but as I sat with my coffee this morning, looking out at the skyline...\"" },
+                transcriptText,
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontStyle = FontStyle.Italic,
                     lineHeight = 28.sp,
@@ -352,7 +360,14 @@ fun MindfulTranscriptionCard(draft: JournalEntryDraft) {
 }
 
 @Composable
-fun MindfulMoodAnalysisCard(moodAnalysis: MoodAnalysis?) {
+fun MindfulMoodAnalysisCard(moodAnalysis: MoodAnalysis?, backendResult: IngestionResponse?) {
+    val analysisLabel = moodAnalysis?.label
+        ?: backendResult?.analysis?.mood
+        ?: ""
+    val analysisExplanation = moodAnalysis?.explanation
+        ?: backendResult?.analysis?.summary
+        ?: ""
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(40.dp),
@@ -374,7 +389,7 @@ fun MindfulMoodAnalysisCard(moodAnalysis: MoodAnalysis?) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                moodAnalysis?.label ?: "Reflection & Gratitude",
+                analysisLabel,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -389,7 +404,7 @@ fun MindfulMoodAnalysisCard(moodAnalysis: MoodAnalysis?) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                moodAnalysis?.explanation ?: "Calm, Analytical, Intentional",
+                analysisExplanation,
                 style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
@@ -399,7 +414,10 @@ fun MindfulMoodAnalysisCard(moodAnalysis: MoodAnalysis?) {
 }
 
 @Composable
-fun MindfulThemesCard(tags: List<JournalTag>) {
+fun MindfulThemesCard(tags: List<JournalTag>, backendResult: IngestionResponse?) {
+    val displayTags = backendResult?.analysis?.themes?.takeIf { it.isNotEmpty() }
+        ?: tags.map { it.name }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(40.dp),
@@ -423,10 +441,6 @@ fun MindfulThemesCard(tags: List<JournalTag>) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                val displayTags = if (tags.isEmpty()) {
-                    listOf("architecture", "mindfulness", "productivity", "reflection", "creativity")
-                } else tags.map { it.name }
-
                 displayTags.forEach { tag ->
                     Surface(
                         color = Color.White,
@@ -448,7 +462,10 @@ fun MindfulThemesCard(tags: List<JournalTag>) {
 }
 
 @Composable
-fun AiSummaryCard(takeaway: String?) {
+fun AiSummaryCard(takeaway: String?, backendResult: IngestionResponse?) {
+    val summary = backendResult?.analysis?.summary
+        ?: takeaway.orEmpty()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(40.dp),
@@ -477,7 +494,7 @@ fun AiSummaryCard(takeaway: String?) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                takeaway ?: "You are shifting your architectural focus from monumental structures to intimate human experiences. The entry reflects a breakthrough in problem-solving...",
+                summary,
                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 24.sp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
             )
@@ -486,7 +503,9 @@ fun AiSummaryCard(takeaway: String?) {
 }
 
 @Composable
-fun KeyInsightsSection() {
+fun KeyInsightsSection(backendResult: IngestionResponse?) {
+    val insights = backendResult?.analysis?.insights.orEmpty()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(40.dp),
@@ -502,10 +521,12 @@ fun KeyInsightsSection() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(32.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                InsightItem(1, "Focus on the \"in-between\" moments in design to enhance user emotional connection.")
-                InsightItem(2, "Approaching team meetings with curiosity instead of defensiveness.")
-                InsightItem(3, "The environment impacts your creative problem-solving (Skyline view & Morning ritual).")
+            if (insights.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    insights.forEachIndexed { index, insight ->
+                        InsightItem(index + 1, insight)
+                    }
+                }
             }
         }
     }
@@ -591,8 +612,8 @@ fun createFallbackDraft(): JournalEntryDraft {
     return JournalEntryDraft(
         id = "",
         recordingSessionId = "",
-        title = "Untitled",
-        transcriptText = "No transcript available yet.",
+        title = "",
+        transcriptText = "",
         updatedAtMillis = System.currentTimeMillis(),
     )
 }

@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
+import com.example.thoughts.ui.theme.ThoughtsColors
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -119,14 +120,14 @@ fun RecordScreen(navController: NavHostController, journalViewModel: JournalView
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            // Ambient Background Glow
+            // Ambient Background Glow (Sage for calm, meditative recording state)
             Box(
                 modifier = Modifier
                     .size(600.dp)
                     .align(Alignment.Center)
-                    .alpha(0.3f)
+                    .alpha(0.25f)
                     .blur(140.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                    .background(ThoughtsColors.Sage, CircleShape)
             )
 
             Column(
@@ -245,7 +246,7 @@ fun RecordScreen(navController: NavHostController, journalViewModel: JournalView
                         IconButton(
                             onClick = {
                                 journalViewModel.finishRecordingAndUpload()
-                                navController.navigate(Screen.Review.route)
+                                navController.navigate(Screen.Processing.route)
                             },
                             modifier = Modifier
                                 .size(56.dp)

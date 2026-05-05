@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ChevronRight
@@ -54,6 +55,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -70,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.thoughts.ui.theme.ThoughtsTheme
+import com.example.thoughts.ui.theme.ThoughtsColors
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,6 +95,11 @@ fun MindfulTopAppBar(
     showClose: Boolean = false,
     onClose: () -> Unit = {}
 ) {
+    val session by AuthSessionManager.session.collectAsState()
+    val avatarLabel = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() }
+        ?: session?.email?.trim().orEmpty().takeIf { it.isNotBlank() }
+        ?: "?"
+
     TopAppBar(
         title = {
             Row(
@@ -134,9 +143,8 @@ fun MindfulTopAppBar(
                             .clip(CircleShape)
                             .border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                     ) {
-                        // Placeholder for avatar
                         Text(
-                            "M",
+                            avatarLabel.first().uppercaseChar().toString(),
                             modifier = Modifier.align(Alignment.Center),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                         )
@@ -189,10 +197,10 @@ fun MindfulBottomNavigation(navController: NavHostController) {
                 label = "Archives"
             )
             MindfulNavItem(
-                selected = false,
-                onClick = { /* Settings logic */ },
-                icon = Icons.Default.Settings,
-                label = "Settings"
+                selected = currentRoute == Screen.Settings.route,
+                onClick = { navController.navigate(Screen.Settings.route) },
+                icon = Icons.Default.AccountCircle,
+                label = "Account"
             )
         }
     }
@@ -278,13 +286,16 @@ fun DashboardScreen(navController: NavHostController, onLogout: () -> Unit) {
 
 @Composable
 fun DashboardHeader() {
+    val session by AuthSessionManager.session.collectAsState()
+    val displayName = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "there"
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Text(
-            "GOOD MORNING, MARCUS",
+            "Welcome, ${displayName}",
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
@@ -323,7 +334,7 @@ fun DashboardHeader() {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    "12 DAY STREAK",
+                    "JOURNAL READY",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -343,7 +354,7 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Background decoration
+            // Background decoration (using Sage for calm tone)
             Icon(
                 Icons.Default.Park,
                 contentDescription = null,
@@ -352,12 +363,12 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
                     .align(Alignment.BottomEnd)
                     .offset(x = 20.dp, y = 20.dp)
                     .blur(1.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                tint = ThoughtsColors.Sage.copy(alpha = 0.08f)
             )
 
             Column(modifier = Modifier.padding(24.dp)) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = ThoughtsColors.Sage.copy(alpha = 0.15f),
                     shape = CircleShape
                 ) {
                     Text(
@@ -367,19 +378,19 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         ),
-                        color = MaterialTheme.colorScheme.secondary
+                        color = ThoughtsColors.Sage
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    "What was one small win today?",
+                    "Your next prompt will appear here.",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(0.8f)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    "Reflecting on minor victories builds the foundation for monumental shifts.",
+                    "Once the backend prompt endpoint is live, this card will display the real daily prompt.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth(0.8f)
@@ -388,7 +399,7 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
                 Button(
                     onClick = onStartRecording,
                     shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ThoughtsColors.Sage),
                     modifier = Modifier.height(48.dp)
                 ) {
                     Text("Write Entry", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
@@ -407,8 +418,8 @@ fun QuickVoiceStartCard(onStartRecording: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 12.dp),
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+        colors = CardDefaults.cardColors(containerColor = ThoughtsColors.Clay.copy(alpha = 0.12f)),
+        border = BorderStroke(1.dp, ThoughtsColors.Clay.copy(alpha = 0.2f))
     ) {
         Column(
             modifier = Modifier
@@ -428,13 +439,13 @@ fun QuickVoiceStartCard(onStartRecording: () -> Unit) {
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .background(ThoughtsColors.Clay.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Mic,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = ThoughtsColors.Clay,
                         modifier = Modifier.size(32.dp)
                     )
                 }
