@@ -21,10 +21,7 @@ data class AuthRefreshRequest(
 )
 
 @Serializable
-data class AuthLogoutRequest(
-    val accessToken: String? = null,
-    val refreshToken: String? = null,
-)
+class AuthLogoutRequest
 
 data class AuthSession(
     val accessToken: String,

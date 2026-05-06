@@ -211,6 +211,7 @@ data class IngestionResponse(
         get() = null
 }
 
+@Deprecated("Use IngestionResponse instead. Backend endpoint /v1/journals/ingest returns full entry data.")
 @Serializable
 data class RecordingUploadResponse(
     @SerialName("recording_id")
@@ -378,4 +379,57 @@ fun JournalEntry.toUploadRequest() = EntryUploadRequest(
     moodLabel = moodAnalysis?.label,
     moodScore = moodAnalysis?.score,
     takeaway = takeaway,
+)
+
+@Serializable
+data class ProfileResponse(
+    val user_id: String,
+    val email: String,
+    val full_name: String,
+    val avatar_url: String? = null,
+    val bio: String? = null,
+    val streak_count: Int = 0,
+    val created_at: String? = null,
+    val updated_at: String? = null,
+) {
+    // Compatibility accessors
+    val display_name: String get() = full_name
+    val tagline: String? get() = bio
+    val initials: String?
+        get() = runCatching {
+            full_name.split(" ")
+                .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+                .take(2)
+                .joinToString("")
+        }.getOrNull()
+
+    // Backwards-compatible default fields used by the Android app UI
+    val entry_count: Int get() = 0
+    val voice_minutes: Int get() = 0
+    val milestones: List<String> get() = emptyList()
+    val next_milestone: String? get() = null
+}
+
+@Serializable
+data class PreferencesResponse(
+    val theme: String = "light",
+    val notifications_enabled: Boolean = true,
+    val reminder_time: String? = "08:00",
+    val language: String = "en",
+) {
+    // Compatibility accessors for app preferences
+    val appearance_mode: String get() = theme
+    val prompt_reminder_time: String? get() = reminder_time
+
+    // Backwards-compatible audio quality used by UI
+    val audio_quality: String get() = "high"
+}
+
+@Serializable
+data class DashboardResponse(
+    val prompt: String? = null,
+    val prompt_status: String = "unavailable",
+    val recent_entries: List<JournalEntrySummaryResponse> = emptyList(),
+    val streak_count: Int = 0,
+    val entry_count: Int = 0,
 )

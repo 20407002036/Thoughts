@@ -55,6 +55,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -243,7 +244,12 @@ fun MindfulNavItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(navController: NavHostController, onLogout: () -> Unit) {
+fun DashboardScreen(navController: NavHostController, journalViewModel: JournalViewModel, onLogout: () -> Unit) {
+    LaunchedEffect(Unit) {
+        journalViewModel.loadProfile()
+        journalViewModel.loadDashboard()
+    }
+
     Scaffold(
         topBar = {
             MindfulTopAppBar(onLogout = onLogout)
@@ -260,10 +266,10 @@ fun DashboardScreen(navController: NavHostController, onLogout: () -> Unit) {
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
-                DashboardHeader()
+                DashboardHeader(journalViewModel = journalViewModel)
             }
             item {
-                DailyPromptCard(onStartRecording = {
+                DailyPromptCard(journalViewModel = journalViewModel, onStartRecording = {
                     navController.navigate(Screen.Record.route)
                 })
             }
@@ -285,9 +291,10 @@ fun DashboardScreen(navController: NavHostController, onLogout: () -> Unit) {
 }
 
 @Composable
-fun DashboardHeader() {
-    val session by AuthSessionManager.session.collectAsState()
-    val displayName = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "there"
+fun DashboardHeader(journalViewModel: JournalViewModel) {
+    val profile by journalViewModel.userProfile.collectAsState()
+    val displayName = profile?.display_name?.trim().orEmpty().takeIf { it.isNotBlank() }
+        ?: "there"
 
     Column(
         modifier = Modifier
@@ -295,7 +302,7 @@ fun DashboardHeader() {
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Text(
-            "Welcome, ${displayName}",
+            "Welcome, ${displayName.split(" ").first()}",
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
@@ -334,7 +341,7 @@ fun DashboardHeader() {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    "JOURNAL READY",
+                    "${profile?.streak_count ?: 0} DAY STREAK",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -344,7 +351,11 @@ fun DashboardHeader() {
 }
 
 @Composable
-fun DailyPromptCard(onStartRecording: () -> Unit) {
+fun DailyPromptCard(journalViewModel: JournalViewModel, onStartRecording: () -> Unit) {
+    val dashboard by journalViewModel.dashboard.collectAsState()
+    val promptText = dashboard?.prompt ?: "Your next prompt will appear here."
+    val promptStatus = dashboard?.prompt_status ?: "unavailable"
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -382,19 +393,28 @@ fun DailyPromptCard(onStartRecording: () -> Unit) {
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    "Your next prompt will appear here.",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.fillMaxWidth(0.8f)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    "Once the backend prompt endpoint is live, this card will display the real daily prompt.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(0.8f)
-                )
+                if (promptStatus == "unavailable" || promptText.isBlank()) {
+                    Text(
+                        "Your daily prompt will be ready soon.",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "Check back later for today's reflection prompt.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    )
+                } else {
+                    Text(
+                        promptText,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    )
+                }
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = onStartRecording,

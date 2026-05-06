@@ -10,5 +10,5 @@ object ThoughtsApi {
     const val AUTH_LOGOUT_ENDPOINT = "$BASE_URL/v1/auth/logout"
     
     // Recording / entry endpoints
-    const val UPLOAD_AUDIO_ENDPOINT = "$BASE_URL/v1/recordings"
+    const val UPLOAD_AUDIO_ENDPOINT = "$BASE_URL/v1/journals/ingest"
 }
