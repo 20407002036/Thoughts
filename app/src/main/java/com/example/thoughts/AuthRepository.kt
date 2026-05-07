@@ -28,7 +28,7 @@ interface AuthApiService {
     suspend fun refresh(@Body request: AuthRefreshRequest): ResponseBody
 
     @POST("v1/auth/logout")
-    suspend fun logout(@Body request: AuthLogoutRequest): ResponseBody
+    suspend fun logout(): ResponseBody
 }
 
 object AuthRepository {
@@ -83,13 +83,9 @@ object AuthRepository {
 
     suspend fun logout(session: AuthSession?): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
+            // POST /v1/auth/logout requires authentication header but no body
             val currentSession = session ?: return@runCatching Unit
-            api.logout(
-                AuthLogoutRequest(
-                    accessToken = currentSession.accessToken,
-                    refreshToken = currentSession.refreshToken,
-                )
-            ).string()
+            api.logout().string()
             Unit
         }
     }

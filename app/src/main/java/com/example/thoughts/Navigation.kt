@@ -31,7 +31,7 @@ fun ThoughtsNavHost(
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.Dashboard.route) {
-            DashboardScreen(navController, onLogout)
+            DashboardScreen(navController, journalViewModel, onLogout)
         }
         composable(Screen.Record.route) {
             RecordScreen(navController, journalViewModel)
@@ -56,7 +56,7 @@ fun ThoughtsNavHost(
             InsightsScreen(navController, journalViewModel)
         }
         composable(Screen.Settings.route) {
-            SettingsScreen(navController, authViewModel ?: AuthViewModel())
+            SettingsScreen(navController, journalViewModel, authViewModel ?: AuthViewModel())
         }
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
@@ -57,20 +58,33 @@ data class SettingsSection(
 )
 
 @Composable
-fun SettingsScreen(navController: NavHostController, authViewModel: AuthViewModel) {
+fun SettingsScreen(navController: NavHostController, journalViewModel: JournalViewModel, authViewModel: AuthViewModel) {
     val scope = rememberCoroutineScope()
     val session by AuthSessionManager.session.collectAsState()
-    val displayName = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "Connected account"
-    val email = session?.email?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "Signed in"
+    val prefs by journalViewModel.userPreferences.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        journalViewModel.loadPreferences()
+    }
+
+    val profile by journalViewModel.userProfile.collectAsState()
+//    val displayName = profile?.display_name?.trim().orEmpty().takeIf { it.isNotBlank() }
+    val displayName = profile?.display_name?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "Connected account"
+    val email = profile?.email?.trim().orEmpty().takeIf { it.isNotBlank() } ?: "Signed in"
     val avatarLabel = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+
+    val notificationsStatus = if (prefs?.notifications_enabled == true) "Enabled" else "Disabled"
+    val appearanceMode = prefs?.appearance_mode?.replaceFirstChar { it.uppercase() } ?: "Auto"
+    val audioQuality = prefs?.audio_quality?.replaceFirstChar { it.uppercase() } ?: "High"
+    val language = prefs?.language?.uppercase() ?: "EN"
 
     val settingsSections = listOf(
         SettingsSection(
             title = "Personal",
             items = listOf(
-                SettingsItem(Icons.Default.Notifications, "Notifications", "Daily prompt reminders"),
-                SettingsItem(Icons.Default.Brightness4, "Appearance", "Light / Auto"),
-                SettingsItem(Icons.Default.Mic, "Audio Settings", "Quality, language")
+                SettingsItem(Icons.Default.Notifications, "Notifications", notificationsStatus),
+                SettingsItem(Icons.Default.Brightness4, "Appearance", appearanceMode),
+                SettingsItem(Icons.Default.Mic, "Audio Settings", "$audioQuality • $language")
             )
         ),
         SettingsSection(

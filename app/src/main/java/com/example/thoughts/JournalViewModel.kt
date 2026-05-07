@@ -62,6 +62,15 @@ class JournalViewModel(
     private val _archivedEntries = MutableStateFlow<List<ArchiveEntrySummary>>(emptyList())
     val archivedEntries: StateFlow<List<ArchiveEntrySummary>> = _archivedEntries.asStateFlow()
 
+    private val _userProfile = MutableStateFlow<ProfileResponse?>(null)
+    val userProfile: StateFlow<ProfileResponse?> = _userProfile.asStateFlow()
+
+    private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
+    val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
+
+    private val _dashboard = MutableStateFlow<DashboardResponse?>(null)
+    val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
+
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
         persistDraft(draft)
@@ -211,9 +220,9 @@ class JournalViewModel(
             )
 
             result.onSuccess { response ->
-                Log.d(TAG, "Upload successful: recording=${response.recordingId}, entry=${response.entryId}")
+                Log.d(TAG, "Upload successful: entry=${response.id}")
                 _uploadState.value = AudioUploadState.Processing
-                val entryId = response.entryId
+                val entryId = response.id
                 if (!entryId.isNullOrBlank()) {
                     loadEntryFromBackend(entryId, response)
                 } else {
@@ -271,26 +280,90 @@ class JournalViewModel(
 
     fun listArchivedEntries(): List<ArchiveEntrySummary> = archivedEntries.value
 
-    private fun loadEntryFromBackend(entryId: String, response: RecordingUploadResponse) {
+    fun loadProfile() {
+        viewModelScope.launch {
+            BackendService.fetchProfile()
+                .onSuccess { profile ->
+                    _userProfile.value = profile
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Failed to fetch profile", throwable)
+                    _uploadError.value = throwable.message ?: "Could not load profile."
+                }
+        }
+    }
+
+    fun saveProfile(profile: ProfileResponse) {
+        viewModelScope.launch {
+            BackendService.updateProfile(profile)
+                .onSuccess { updatedProfile ->
+                    _userProfile.value = updatedProfile
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Failed to update profile", throwable)
+                    _uploadError.value = throwable.message ?: "Could not save profile."
+                }
+        }
+    }
+
+    fun loadPreferences() {
+        viewModelScope.launch {
+            BackendService.fetchPreferences()
+                .onSuccess { prefs ->
+                    _userPreferences.value = prefs
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Failed to fetch preferences", throwable)
+                    _uploadError.value = throwable.message ?: "Could not load preferences."
+                }
+        }
+    }
+
+    fun savePreferences(prefs: PreferencesResponse) {
+        viewModelScope.launch {
+            BackendService.updatePreferences(prefs)
+                .onSuccess { updatedPrefs ->
+                    _userPreferences.value = updatedPrefs
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Failed to update preferences", throwable)
+                    _uploadError.value = throwable.message ?: "Could not save preferences."
+                }
+        }
+    }
+
+    fun loadDashboard() {
+        viewModelScope.launch {
+            BackendService.fetchDashboard()
+                .onSuccess { dashboard ->
+                    _dashboard.value = dashboard
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Failed to fetch dashboard", throwable)
+                    _uploadError.value = throwable.message ?: "Could not load dashboard."
+                }
+        }
+    }
+
+    private fun loadEntryFromBackend(entryId: String, response: IngestionResponse) {
         viewModelScope.launch {
             BackendService.fetchEntry(entryId)
                 .onSuccess { entry ->
                     _backendResult.value = IngestionResponse(
                         id = entry.id,
-                        recordingId = response.recordingId,
-                        status = response.status,
-                        progressPercent = response.progressPercent,
-                        errorMessage = response.errorMessage,
-                        entryId = entry.id,
-                        draftId = response.draftId,
                         transcript = entry.transcript.fullText,
+                        analysis = IngestionAnalysis(
+                            mood = entry.moodAnalysis?.label,
+                            summary = entry.moodAnalysis?.explanation,
+                            themes = entry.tags.map { it.name },
+                        ),
                         audioSignedUrl = entry.audioAsset?.remoteUrl,
-                        createdAt = System.currentTimeMillis().toString(),
+                        createdAt = java.time.Instant.ofEpochMilli(entry.createdAtMillis).toString(),
                     )
                     _selectedEntry.value = entry
 
                     val updatedDraft = JournalEntryDraft(
-                        id = response.draftId ?: entry.id,
+                        id = entry.id,
                         recordingSessionId = entry.recordingSessionId,
                         title = entry.title,
                         transcriptText = entry.transcript.fullText,
