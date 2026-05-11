@@ -8,18 +8,13 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Response
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
-import retrofit2.http.PATCH
 import retrofit2.http.Part
-import retrofit2.http.Path
-import retrofit2.http.Body
 import okhttp3.MultipartBody
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -31,48 +26,40 @@ interface JournalApiService {
     
     @Multipart
     @POST("v1/journals/ingest")
-    suspend fun uploadRecording(
+    suspend fun uploadAudioForTranscription(
         @Header("Authorization") authorization: String,
         @Part audio: MultipartBody.Part,
+        @Part("duration_ms") durationMs: String,
+        @Part("locale") locale: String = "en-US",
     ): IngestionResponse
 
-    @GET("v1/entries/{entryId}")
-    suspend fun getEntry(
+    @retrofit2.http.GET("v1/journals")
+    suspend fun listJournalEntries(
         @Header("Authorization") authorization: String,
-        @Path("entryId") entryId: String,
-    ): JournalEntryResponse
-    
-    @GET("v1/entries")
-    suspend fun getEntries(
-        @Header("Authorization") authorization: String,
+        @retrofit2.http.Query("limit") limit: Int = 20,
+        @retrofit2.http.Query("offset") offset: Int = 0,
     ): JournalEntriesResponse
 
-    @GET("v1/profile")
+    @retrofit2.http.GET("v1/journals/{id}")
+    suspend fun getJournalEntry(
+        @Header("Authorization") authorization: String,
+        @retrofit2.http.Path("id") id: String,
+    ): JournalEntryResponse
+
+    @retrofit2.http.GET("v1/users/profile")
     suspend fun getProfile(
         @Header("Authorization") authorization: String,
     ): ProfileResponse
 
-    @PATCH("v1/profile")
-    suspend fun updateProfile(
-        @Header("Authorization") authorization: String,
-        @Body profile: ProfileResponse,
-    ): ProfileResponse
-
-    @GET("v1/preferences")
-    suspend fun getPreferences(
-        @Header("Authorization") authorization: String,
-    ): PreferencesResponse
-
-    @PATCH("v1/preferences")
-    suspend fun updatePreferences(
-        @Header("Authorization") authorization: String,
-        @Body preferences: PreferencesResponse,
-    ): PreferencesResponse
-
-    @GET("v1/dashboard")
+    @retrofit2.http.GET("v1/dashboard")
     suspend fun getDashboard(
         @Header("Authorization") authorization: String,
     ): DashboardResponse
+
+    @retrofit2.http.GET("v1/users/preferences")
+    suspend fun getPreferences(
+        @Header("Authorization") authorization: String,
+    ): PreferencesResponse
 }
 
 // Singleton BackendService
@@ -112,8 +99,8 @@ object BackendService {
      * Upload audio file for transcription and analysis.
      * 
      * @param audioFile The local audio file to upload
-     * @param durationMs Duration of the recording in milliseconds (for logging only)
-     * @param locale Language locale (for logging only)
+     * @param durationMs Duration of the recording in milliseconds
+     * @param locale Language locale (e.g., "en-US")
      * @return IngestionResponse containing transcript, mood analysis, and tags from backend
      */
     suspend fun uploadAudioForTranscription(
@@ -139,6 +126,124 @@ object BackendService {
         }
     }
 
+    suspend fun listJournalEntries(
+        limit: Int = 20,
+        offset: Int = 0,
+    ): Result<JournalEntriesResponse> {
+        return try {
+            val authorization = AuthSessionManager.authorizationHeader()
+                ?: throw IllegalStateException("User session not found")
+            Result.success(apiService.listJournalEntries(authorization, limit, offset))
+        } catch (e: HttpException) {
+            if (e.code() == 401 && refreshSessionIfNeeded()) {
+                try {
+                    val authorization = AuthSessionManager.authorizationHeader()
+                        ?: throw IllegalStateException("User session not found")
+                    Result.success(apiService.listJournalEntries(authorization, limit, offset))
+                } catch (retryError: Exception) {
+                    Result.failure(retryError)
+                }
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to list journal entries", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getJournalEntry(id: String): Result<JournalEntryResponse> {
+        return try {
+            val authorization = AuthSessionManager.authorizationHeader()
+                ?: throw IllegalStateException("User session not found")
+            Result.success(apiService.getJournalEntry(authorization, id))
+        } catch (e: HttpException) {
+            if (e.code() == 401 && refreshSessionIfNeeded()) {
+                try {
+                    val authorization = AuthSessionManager.authorizationHeader()
+                        ?: throw IllegalStateException("User session not found")
+                    Result.success(apiService.getJournalEntry(authorization, id))
+                } catch (retryError: Exception) {
+                    Result.failure(retryError)
+                }
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get journal entry: $id", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getProfile(): Result<ProfileResponse> {
+        return try {
+            val authorization = AuthSessionManager.authorizationHeader()
+                ?: throw IllegalStateException("User session not found")
+            Result.success(apiService.getProfile(authorization))
+        } catch (e: HttpException) {
+            if (e.code() == 401 && refreshSessionIfNeeded()) {
+                try {
+                    val authorization = AuthSessionManager.authorizationHeader()
+                        ?: throw IllegalStateException("User session not found")
+                    Result.success(apiService.getProfile(authorization))
+                } catch (retryError: Exception) {
+                    Result.failure(retryError)
+                }
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get profile", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getDashboard(): Result<DashboardResponse> {
+        return try {
+            val authorization = AuthSessionManager.authorizationHeader()
+                ?: throw IllegalStateException("User session not found")
+            Result.success(apiService.getDashboard(authorization))
+        } catch (e: HttpException) {
+            if (e.code() == 401 && refreshSessionIfNeeded()) {
+                try {
+                    val authorization = AuthSessionManager.authorizationHeader()
+                        ?: throw IllegalStateException("User session not found")
+                    Result.success(apiService.getDashboard(authorization))
+                } catch (retryError: Exception) {
+                    Result.failure(retryError)
+                }
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get dashboard", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPreferences(): Result<PreferencesResponse> {
+        return try {
+            val authorization = AuthSessionManager.authorizationHeader()
+                ?: throw IllegalStateException("User session not found")
+            Result.success(apiService.getPreferences(authorization))
+        } catch (e: HttpException) {
+            if (e.code() == 401 && refreshSessionIfNeeded()) {
+                try {
+                    val authorization = AuthSessionManager.authorizationHeader()
+                        ?: throw IllegalStateException("User session not found")
+                    Result.success(apiService.getPreferences(authorization))
+                } catch (retryError: Exception) {
+                    Result.failure(retryError)
+                }
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get preferences", e)
+            Result.failure(e)
+        }
+    }
+
     private suspend fun uploadAudioOnce(
         audioFile: File,
         durationMs: Long,
@@ -157,201 +262,15 @@ object BackendService {
         val requestBody = audioFile.asRequestBody("audio/m4a".toMediaType())
         val part = MultipartBody.Part.createFormData("audio", audioFile.name, requestBody)
 
-        val response = apiService.uploadRecording(
+        val response = apiService.uploadAudioForTranscription(
             authorization = authorization,
             audio = part,
+            durationMs = durationMs.toString(),
+            locale = locale,
         )
 
-        Log.d(TAG, "Upload successful. Entry id: ${response.id}")
+        Log.d(TAG, "Upload successful. Transcript length: ${response.transcript.length}")
         return response
-    }
-
-    suspend fun fetchArchivedEntries(): Result<List<ArchiveEntrySummary>> {
-        return try {
-            val authorization = AuthSessionManager.authorizationHeader()
-                ?: return Result.failure(IllegalStateException("Sign in before loading your archives."))
-
-            val response = apiService.getEntries(authorization = authorization)
-            Result.success(response.entries.map { it.toArchiveEntrySummary() })
-        } catch (e: HttpException) {
-            if (e.code() == 401 && refreshSessionIfNeeded()) {
-                try {
-                    val retryAuthorization = AuthSessionManager.authorizationHeader()
-                        ?: return Result.failure(IllegalStateException("Sign in before loading your archives."))
-                    val retryResponse = apiService.getEntries(authorization = retryAuthorization)
-                    Result.success(retryResponse.entries.map { it.toArchiveEntrySummary() })
-                } catch (retryError: Exception) {
-                    Result.failure(retryError)
-                }
-            } else {
-                Result.failure(e)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch archive entries", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun fetchEntry(entryId: String): Result<JournalEntry> {
-        return try {
-            val authorization = AuthSessionManager.authorizationHeader()
-                ?: return Result.failure(IllegalStateException("Sign in before loading a journal entry."))
-
-            val response = apiService.getEntry(
-                authorization = authorization,
-                entryId = entryId,
-            )
-            Result.success(response.toJournalEntry())
-        } catch (e: HttpException) {
-            if (e.code() == 401 && refreshSessionIfNeeded()) {
-                try {
-                    val retryAuthorization = AuthSessionManager.authorizationHeader()
-                        ?: return Result.failure(IllegalStateException("Sign in before loading a journal entry."))
-                    val retryResponse = apiService.getEntry(
-                        authorization = retryAuthorization,
-                        entryId = entryId,
-                    )
-                    Result.success(retryResponse.toJournalEntry())
-                } catch (retryError: Exception) {
-                    Result.failure(retryError)
-                }
-            } else {
-                Result.failure(e)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch entry", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun fetchProfile(): Result<ProfileResponse> {
-        return try {
-            val authorization = AuthSessionManager.authorizationHeader()
-                ?: return Result.failure(IllegalStateException("Sign in before loading your profile."))
-
-            val response = apiService.getProfile(authorization = authorization)
-            Result.success(response)
-        } catch (e: HttpException) {
-            if (e.code() == 401 && refreshSessionIfNeeded()) {
-                try {
-                    val retryAuthorization = AuthSessionManager.authorizationHeader()
-                        ?: return Result.failure(IllegalStateException("Sign in before loading your profile."))
-                    val retryResponse = apiService.getProfile(authorization = retryAuthorization)
-                    Result.success(retryResponse)
-                } catch (retryError: Exception) {
-                    Result.failure(retryError)
-                }
-            } else {
-                Result.failure(e)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch profile", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun updateProfile(profile: ProfileResponse): Result<ProfileResponse> {
-        return try {
-            val authorization = AuthSessionManager.authorizationHeader()
-                ?: return Result.failure(IllegalStateException("Sign in before updating your profile."))
-
-            val response = apiService.updateProfile(authorization = authorization, profile = profile)
-            Result.success(response)
-        } catch (e: HttpException) {
-            if (e.code() == 401 && refreshSessionIfNeeded()) {
-                try {
-                    val retryAuthorization = AuthSessionManager.authorizationHeader()
-                        ?: return Result.failure(IllegalStateException("Sign in before updating your profile."))
-                    val retryResponse = apiService.updateProfile(authorization = retryAuthorization, profile = profile)
-                    Result.success(retryResponse)
-                } catch (retryError: Exception) {
-                    Result.failure(retryError)
-                }
-            } else {
-                Result.failure(e)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to update profile", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun fetchPreferences(): Result<PreferencesResponse> {
-        return try {
-            val authorization = AuthSessionManager.authorizationHeader()
-                ?: return Result.failure(IllegalStateException("Sign in before loading preferences."))
-
-            val response = apiService.getPreferences(authorization = authorization)
-            Result.success(response)
-        } catch (e: HttpException) {
-            if (e.code() == 401 && refreshSessionIfNeeded()) {
-                try {
-                    val retryAuthorization = AuthSessionManager.authorizationHeader()
-                        ?: return Result.failure(IllegalStateException("Sign in before loading preferences."))
-                    val retryResponse = apiService.getPreferences(authorization = retryAuthorization)
-                    Result.success(retryResponse)
-                } catch (retryError: Exception) {
-                    Result.failure(retryError)
-                }
-            } else {
-                Result.failure(e)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch preferences", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun updatePreferences(prefs: PreferencesResponse): Result<PreferencesResponse> {
-        return try {
-            val authorization = AuthSessionManager.authorizationHeader()
-                ?: return Result.failure(IllegalStateException("Sign in before updating preferences."))
-
-            val response = apiService.updatePreferences(authorization = authorization, preferences = prefs)
-            Result.success(response)
-        } catch (e: HttpException) {
-            if (e.code() == 401 && refreshSessionIfNeeded()) {
-                try {
-                    val retryAuthorization = AuthSessionManager.authorizationHeader()
-                        ?: return Result.failure(IllegalStateException("Sign in before updating preferences."))
-                    val retryResponse = apiService.updatePreferences(authorization = retryAuthorization, preferences = prefs)
-                    Result.success(retryResponse)
-                } catch (retryError: Exception) {
-                    Result.failure(retryError)
-                }
-            } else {
-                Result.failure(e)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to update preferences", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun fetchDashboard(): Result<DashboardResponse> {
-        return try {
-            val authorization = AuthSessionManager.authorizationHeader()
-                ?: return Result.failure(IllegalStateException("Sign in before loading dashboard."))
-
-            val response = apiService.getDashboard(authorization = authorization)
-            Result.success(response)
-        } catch (e: HttpException) {
-            if (e.code() == 401 && refreshSessionIfNeeded()) {
-                try {
-                    val retryAuthorization = AuthSessionManager.authorizationHeader()
-                        ?: return Result.failure(IllegalStateException("Sign in before loading dashboard."))
-                    val retryResponse = apiService.getDashboard(authorization = retryAuthorization)
-                    Result.success(retryResponse)
-                } catch (retryError: Exception) {
-                    Result.failure(retryError)
-                }
-            } else {
-                Result.failure(e)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch dashboard", e)
-            Result.failure(e)
-        }
     }
 
     private suspend fun refreshSessionIfNeeded(): Boolean {

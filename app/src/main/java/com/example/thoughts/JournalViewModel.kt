@@ -51,25 +51,25 @@ class JournalViewModel(
     private val _backendResult = MutableStateFlow<IngestionResponse?>(null)
     val backendResult: StateFlow<IngestionResponse?> = _backendResult.asStateFlow()
 
+    private val _archivedEntries = MutableStateFlow<List<ArchiveEntrySummary>>(emptyList())
+    val archivedEntries: StateFlow<List<ArchiveEntrySummary>> = _archivedEntries.asStateFlow()
+
     private val _selectedEntry = MutableStateFlow<JournalEntry?>(null)
     val selectedEntry: StateFlow<JournalEntry?> = _selectedEntry.asStateFlow()
+
+    private val _userProfile = MutableStateFlow<ProfileResponse?>(null)
+    val userProfile: StateFlow<ProfileResponse?> = _userProfile.asStateFlow()
+
+    private val _dashboard = MutableStateFlow<DashboardResponse?>(null)
+    val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
+
+    private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
+    val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
 
     private var timerJob: Job? = null
     private var audioFile: File? = null
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
-
-    private val _archivedEntries = MutableStateFlow<List<ArchiveEntrySummary>>(emptyList())
-    val archivedEntries: StateFlow<List<ArchiveEntrySummary>> = _archivedEntries.asStateFlow()
-
-    private val _userProfile = MutableStateFlow<ProfileResponse?>(null)
-    val userProfile: StateFlow<ProfileResponse?> = _userProfile.asStateFlow()
-
-    private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
-    val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
-
-    private val _dashboard = MutableStateFlow<DashboardResponse?>(null)
-    val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
 
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
@@ -220,14 +220,9 @@ class JournalViewModel(
             )
 
             result.onSuccess { response ->
-                Log.d(TAG, "Upload successful: entry=${response.id}")
+                Log.d(TAG, "Upload successful: ${response.transcript.take(100)}")
                 _uploadState.value = AudioUploadState.Processing
-                val entryId = response.id
-                if (!entryId.isNullOrBlank()) {
-                    loadEntryFromBackend(entryId, response)
-                } else {
-                    processingFailed("Upload completed but the backend did not return an entry id.")
-                }
+                processingComplete(response)
             }
 
             result.onFailure { exception ->
@@ -252,143 +247,86 @@ class JournalViewModel(
         uploadAudioToBackend()
     }
 
-    fun loadEntry(entryId: String) {
-        viewModelScope.launch {
-            BackendService.fetchEntry(entryId)
-                .onSuccess { entry ->
-                    _selectedEntry.value = entry
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to load entry $entryId", throwable)
-                    _selectedEntry.value = null
-                }
-        }
-    }
-
     fun loadArchivedEntries() {
         viewModelScope.launch {
-            BackendService.fetchArchivedEntries()
-                .onSuccess { entries ->
-                    _archivedEntries.value = entries
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to load archive entries", throwable)
-                    _archivedEntries.value = emptyList()
-                }
+            val result = BackendService.listJournalEntries(limit = 50)
+            result.onSuccess { response: JournalEntriesResponse ->
+                _archivedEntries.value = response.entries.map { it.toArchiveEntrySummary() }
+            }
+            result.onFailure { error ->
+                Log.e(TAG, "Failed to load archived entries", error)
+            }
         }
     }
 
-    fun listArchivedEntries(): List<ArchiveEntrySummary> = archivedEntries.value
+    fun listArchivedEntries(): List<ArchiveEntrySummary> {
+        return _archivedEntries.value
+    }
+
+    fun loadEntry(id: String) {
+        viewModelScope.launch {
+            val result = BackendService.getJournalEntry(id)
+            result.onSuccess { response ->
+                _selectedEntry.value = response.toJournalEntry()
+            }
+            result.onFailure { error ->
+                Log.e(TAG, "Failed to load entry: $id", error)
+                _selectedEntry.value = null
+            }
+        }
+    }
 
     fun loadProfile() {
         viewModelScope.launch {
-            BackendService.fetchProfile()
-                .onSuccess { profile ->
-                    _userProfile.value = profile
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to fetch profile", throwable)
-                    _uploadError.value = throwable.message ?: "Could not load profile."
-                }
-        }
-    }
-
-    fun saveProfile(profile: ProfileResponse) {
-        viewModelScope.launch {
-            BackendService.updateProfile(profile)
-                .onSuccess { updatedProfile ->
-                    _userProfile.value = updatedProfile
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to update profile", throwable)
-                    _uploadError.value = throwable.message ?: "Could not save profile."
-                }
-        }
-    }
-
-    fun loadPreferences() {
-        viewModelScope.launch {
-            BackendService.fetchPreferences()
-                .onSuccess { prefs ->
-                    _userPreferences.value = prefs
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to fetch preferences", throwable)
-                    _uploadError.value = throwable.message ?: "Could not load preferences."
-                }
-        }
-    }
-
-    fun savePreferences(prefs: PreferencesResponse) {
-        viewModelScope.launch {
-            BackendService.updatePreferences(prefs)
-                .onSuccess { updatedPrefs ->
-                    _userPreferences.value = updatedPrefs
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to update preferences", throwable)
-                    _uploadError.value = throwable.message ?: "Could not save preferences."
-                }
+            BackendService.getProfile()
+                .onSuccess { _userProfile.value = it }
+                .onFailure { Log.e(TAG, "Failed to load profile", it) }
         }
     }
 
     fun loadDashboard() {
         viewModelScope.launch {
-            BackendService.fetchDashboard()
-                .onSuccess { dashboard ->
-                    _dashboard.value = dashboard
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to fetch dashboard", throwable)
-                    _uploadError.value = throwable.message ?: "Could not load dashboard."
-                }
+            BackendService.getDashboard()
+                .onSuccess { _dashboard.value = it }
+                .onFailure { Log.e(TAG, "Failed to load dashboard", it) }
         }
     }
 
-    private fun loadEntryFromBackend(entryId: String, response: IngestionResponse) {
+    fun loadPreferences() {
         viewModelScope.launch {
-            BackendService.fetchEntry(entryId)
-                .onSuccess { entry ->
-                    _backendResult.value = IngestionResponse(
-                        id = entry.id,
-                        transcript = entry.transcript.fullText,
-                        analysis = IngestionAnalysis(
-                            mood = entry.moodAnalysis?.label,
-                            summary = entry.moodAnalysis?.explanation,
-                            themes = entry.tags.map { it.name },
-                        ),
-                        audioSignedUrl = entry.audioAsset?.remoteUrl,
-                        createdAt = java.time.Instant.ofEpochMilli(entry.createdAtMillis).toString(),
-                    )
-                    _selectedEntry.value = entry
-
-                    val updatedDraft = JournalEntryDraft(
-                        id = entry.id,
-                        recordingSessionId = entry.recordingSessionId,
-                        title = entry.title,
-                        transcriptText = entry.transcript.fullText,
-                        audioAsset = entry.audioAsset,
-                        tags = entry.tags,
-                        moodAnalysis = entry.moodAnalysis,
-                        takeaway = entry.takeaway,
-                        updatedAtMillis = System.currentTimeMillis(),
-                    )
-                    saveDraft(updatedDraft)
-
-                    _uploadState.value = AudioUploadState.Uploaded
-                    audioFile?.let { AudioFileManager.deleteAudioFile(it) }
-                    audioFile = null
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to load uploaded entry $entryId", throwable)
-                    processingFailed(throwable.message ?: "Could not load the uploaded journal entry.")
-                }
+            BackendService.getPreferences()
+                .onSuccess { _userPreferences.value = it }
+                .onFailure { Log.e(TAG, "Failed to load preferences", it) }
         }
     }
 
-    private fun processingFailed(message: String) {
-        _uploadState.value = AudioUploadState.Failed
-        _uploadError.value = message
+    private fun processingComplete(response: IngestionResponse) {
+        _backendResult.value = response
+        _uploadState.value = AudioUploadState.Uploaded
+
+        // Update draft with backend results
+        val tags = response.tags.map { JournalTag(it, TagSource.Generated) }
+        val moodLabel = response.moodLabel
+        val mood = if (moodLabel != null) {
+            MoodAnalysis(
+                label = moodLabel,
+                score = response.moodScore ?: 0f,
+                confidence = response.moodConfidence,
+                explanation = response.moodExplanation,
+            )
+        } else null
+
+        val updatedDraft = currentDraftOrDefault().copy(
+            transcriptText = response.transcript,
+            tags = tags,
+            moodAnalysis = mood,
+            updatedAtMillis = System.currentTimeMillis(),
+        )
+        saveDraft(updatedDraft)
+
+        // Cleanup audio file after successful upload
+        audioFile?.let { AudioFileManager.deleteAudioFile(it) }
+        audioFile = null
     }
 
     fun updateTranscriptText(text: String) {

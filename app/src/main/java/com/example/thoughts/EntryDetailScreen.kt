@@ -30,6 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun EntryDetailScreen(navController: NavHostController, journalViewModel: JournalViewModel, entryId: String) {
@@ -134,9 +137,9 @@ fun EntryDetailScreen(navController: NavHostController, journalViewModel: Journa
 
 // Helper to format timestamp as date string
 private fun formatDate(millis: Long): String {
-    val cal = java.util.Calendar.getInstance()
+    val cal = Calendar.getInstance()
     cal.timeInMillis = millis
-    val sdf = java.text.SimpleDateFormat("MMM dd, yyyy • hh:mm a", java.util.Locale.US)
+    val sdf = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.US)
     return sdf.format(cal.time).uppercase(Locale.US)
 }
 
