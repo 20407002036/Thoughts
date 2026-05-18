@@ -1,0 +1,96 @@
+package com.example.thoughts
+
+import android.content.Context
+import com.example.thoughts.data.local.*
+import kotlinx.coroutines.flow.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+
+object JournalRepository {
+    private lateinit var database: ThoughtsDatabase
+    private lateinit var prefsManager: UserPreferencesManager
+    private val json = Json { ignoreUnknownKeys = true }
+
+    fun initialize(context: Context) {
+        database = ThoughtsDatabase.getDatabase(context)
+        prefsManager = UserPreferencesManager(context)
+    }
+
+    private val dao get() = database.journalDao()
+
+    // --- Journal Entries ---
+
+    fun getEntries(): Flow<List<JournalEntry>> {
+        return dao.getAllEntries().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    suspend fun refreshEntries() {
+        BackendService.listJournalEntries().onSuccess { response ->
+            response.entries.forEach { summary ->
+                dao.insertEntry(summary.toEntity())
+            }
+        }
+    }
+
+    suspend fun getEntry(id: String): Result<JournalEntry> {
+        val local = dao.getEntryById(id)?.toDomain()
+        if (local != null) return Result.success(local)
+
+        return BackendService.getJournalEntry(id).map { response ->
+            val entry = response.toJournalEntry()
+            dao.insertEntry(entry.toEntity())
+            entry
+        }
+    }
+
+    // --- Drafts & Uploads ---
+
+    suspend fun saveDraft(draft: JournalEntryDraft) {
+        dao.insertDraft(draft.toEntity())
+    }
+
+    suspend fun getDraft(id: String): JournalEntryDraft? {
+        return dao.getDraftById(id)?.toDomain()
+    }
+
+    suspend fun deleteDraft(id: String) {
+        dao.deleteDraft(id)
+    }
+
+    suspend fun saveAudioAsset(asset: AudioAsset) {
+        dao.insertAudioAsset(asset.toEntity())
+    }
+
+    suspend fun updateAudioUploadState(assetId: String, state: AudioUploadState) {
+        dao.updateAudioAssetState(assetId, state.name)
+    }
+
+    // --- Profile & Preferences ---
+
+    fun getProfileFlow(): Flow<ProfileResponse?> {
+        return prefsManager.userProfileFlow.map { jsonString ->
+            jsonString?.let { json.decodeFromString<ProfileResponse>(it) }
+        }
+    }
+
+    suspend fun refreshProfile() {
+        BackendService.getProfile().onSuccess { profile ->
+            prefsManager.saveUserProfile(json.encodeToString(ProfileResponse.serializer(), profile))
+        }
+    }
+
+    fun getPreferencesFlow(): Flow<PreferencesResponse?> {
+        return prefsManager.appPreferencesFlow.map { jsonString ->
+            jsonString?.let { json.decodeFromString<PreferencesResponse>(it) }
+        }
+    }
+
+    suspend fun refreshPreferences() {
+        BackendService.getPreferences().onSuccess { prefs ->
+            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), prefs))
+        }
+    }
+}

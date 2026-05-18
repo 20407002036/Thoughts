@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AuthSessionManager.initialize(applicationContext)
+        JournalRepository.initialize(applicationContext)
         enableEdgeToEdge()
         setContent {
             ThoughtsTheme {

@@ -36,10 +36,10 @@ class JournalViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
-    private val _currentDraft = MutableStateFlow(readDraftFromState())
+    private val _currentDraft = MutableStateFlow<JournalEntryDraft?>(null)
     val currentDraft: StateFlow<JournalEntryDraft?> = _currentDraft.asStateFlow()
 
-    private val _recordingSession = MutableStateFlow(readRecordingSessionFromState())
+    private val _recordingSession = MutableStateFlow(RecordingSession(id = "", startedAtMillis = System.currentTimeMillis()))
     val recordingSession: StateFlow<RecordingSession> = _recordingSession.asStateFlow()
 
     private val _uploadState = MutableStateFlow(AudioUploadState.Local)
@@ -73,13 +73,16 @@ class JournalViewModel(
 
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
-        persistDraft(draft)
+        viewModelScope.launch {
+            JournalRepository.saveDraft(draft)
+        }
     }
 
     fun ensureDraftInitialized() {
         if (_currentDraft.value == null) {
             val now = System.currentTimeMillis()
-            saveDraft(createDefaultDraft(now))
+            val draft = createDefaultDraft(now)
+            saveDraft(draft)
         }
     }
 
@@ -249,12 +252,9 @@ class JournalViewModel(
 
     fun loadArchivedEntries() {
         viewModelScope.launch {
-            val result = BackendService.listJournalEntries(limit = 50)
-            result.onSuccess { response: JournalEntriesResponse ->
-                _archivedEntries.value = response.entries.map { it.toArchiveEntrySummary() }
-            }
-            result.onFailure { error ->
-                Log.e(TAG, "Failed to load archived entries", error)
+            JournalRepository.refreshEntries()
+            JournalRepository.getEntries().collect { entries ->
+                _archivedEntries.value = entries.map { it.toArchiveEntrySummary() }
             }
         }
     }
@@ -265,9 +265,9 @@ class JournalViewModel(
 
     fun loadEntry(id: String) {
         viewModelScope.launch {
-            val result = BackendService.getJournalEntry(id)
-            result.onSuccess { response ->
-                _selectedEntry.value = response.toJournalEntry()
+            val result = JournalRepository.getEntry(id)
+            result.onSuccess { entry ->
+                _selectedEntry.value = entry
             }
             result.onFailure { error ->
                 Log.e(TAG, "Failed to load entry: $id", error)
@@ -278,9 +278,8 @@ class JournalViewModel(
 
     fun loadProfile() {
         viewModelScope.launch {
-            BackendService.getProfile()
-                .onSuccess { _userProfile.value = it }
-                .onFailure { Log.e(TAG, "Failed to load profile", it) }
+            JournalRepository.refreshProfile()
+            JournalRepository.getProfileFlow().collect { _userProfile.value = it }
         }
     }
 
@@ -294,9 +293,8 @@ class JournalViewModel(
 
     fun loadPreferences() {
         viewModelScope.launch {
-            BackendService.getPreferences()
-                .onSuccess { _userPreferences.value = it }
-                .onFailure { Log.e(TAG, "Failed to load preferences", it) }
+            JournalRepository.refreshPreferences()
+            JournalRepository.getPreferencesFlow().collect { _userPreferences.value = it }
         }
     }
 
@@ -374,51 +372,6 @@ class JournalViewModel(
         savedStateHandle.remove<Long>(RecordingEndedAtKey)
         savedStateHandle.remove<Long>(RecordingDurationKey)
         savedStateHandle.remove<String>(RecordingStatusKey)
-    }
-
-    private fun readDraftFromState(): JournalEntryDraft? {
-        val draftId = savedStateHandle.get<String>(DraftIdKey) ?: return null
-        val recordingSessionId = savedStateHandle.get<String>(RecordingSessionIdKey) ?: return null
-        val transcriptText = savedStateHandle.get<String>(TranscriptTextKey) ?: return null
-        val updatedAtMillis = savedStateHandle.get<Long>(UpdatedAtKey) ?: System.currentTimeMillis()
-        val tags = savedStateHandle.get<String>(TagsKey)
-            ?.split("|")
-            ?.filter { it.isNotBlank() }
-            ?.map { JournalTag(name = it) }
-            ?: emptyList()
-        val moodLabel = savedStateHandle.get<String>(MoodLabelKey)
-        val moodScore = savedStateHandle.get<Float>(MoodScoreKey)
-        val moodExplanation = savedStateHandle.get<String>(MoodExplanationKey)
-
-        return JournalEntryDraft(
-            id = draftId,
-            recordingSessionId = recordingSessionId,
-            title = savedStateHandle.get<String>(TitleKey),
-            transcriptText = transcriptText,
-            tags = tags,
-            moodAnalysis = moodLabel?.let {
-                MoodAnalysis(
-                    label = it,
-                    score = moodScore ?: 0f,
-                    explanation = moodExplanation,
-                )
-            },
-            takeaway = savedStateHandle.get<String>(TakeawayKey),
-            updatedAtMillis = updatedAtMillis,
-        )
-    }
-
-    private fun persistDraft(draft: JournalEntryDraft) {
-        savedStateHandle[DraftIdKey] = draft.id
-        savedStateHandle[RecordingSessionIdKey] = draft.recordingSessionId
-        savedStateHandle[TitleKey] = draft.title
-        savedStateHandle[TranscriptTextKey] = draft.transcriptText
-        savedStateHandle[TagsKey] = draft.tags.joinToString("|") { it.name }
-        savedStateHandle[MoodLabelKey] = draft.moodAnalysis?.label
-        savedStateHandle[MoodScoreKey] = draft.moodAnalysis?.score
-        savedStateHandle[MoodExplanationKey] = draft.moodAnalysis?.explanation
-        savedStateHandle[TakeawayKey] = draft.takeaway
-        savedStateHandle[UpdatedAtKey] = draft.updatedAtMillis
     }
 
     private fun readRecordingSessionFromState(): RecordingSession {
