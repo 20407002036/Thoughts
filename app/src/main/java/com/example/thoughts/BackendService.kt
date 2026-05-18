@@ -29,8 +29,6 @@ interface JournalApiService {
     suspend fun uploadAudioForTranscription(
         @Header("Authorization") authorization: String,
         @Part audio: MultipartBody.Part,
-        @Part("duration_ms") durationMs: String,
-        @Part("locale") locale: String = "en-US",
     ): IngestionResponse
 
     @retrofit2.http.GET("v1/journals")
@@ -46,7 +44,7 @@ interface JournalApiService {
         @retrofit2.http.Path("id") id: String,
     ): JournalEntryResponse
 
-    @retrofit2.http.GET("v1/users/profile")
+    @retrofit2.http.GET("v1/profile")
     suspend fun getProfile(
         @Header("Authorization") authorization: String,
     ): ProfileResponse
@@ -56,7 +54,7 @@ interface JournalApiService {
         @Header("Authorization") authorization: String,
     ): DashboardResponse
 
-    @retrofit2.http.GET("v1/users/preferences")
+    @retrofit2.http.GET("v1/preferences")
     suspend fun getPreferences(
         @Header("Authorization") authorization: String,
     ): PreferencesResponse
@@ -68,6 +66,7 @@ object BackendService {
     private val json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
+        explicitNulls = false
     }
     
     private val httpClient: OkHttpClient = OkHttpClient.Builder()
@@ -109,11 +108,11 @@ object BackendService {
         locale: String = "en-US",
     ): Result<IngestionResponse> {
         return try {
-            Result.success(uploadAudioOnce(audioFile, durationMs, locale))
+            Result.success(uploadAudioOnce(audioFile))
         } catch (e: HttpException) {
             if (e.code() == 401 && refreshSessionIfNeeded()) {
                 try {
-                    Result.success(uploadAudioOnce(audioFile, durationMs, locale))
+                    Result.success(uploadAudioOnce(audioFile))
                 } catch (retryError: Exception) {
                     Result.failure(retryError)
                 }
@@ -246,10 +245,8 @@ object BackendService {
 
     private suspend fun uploadAudioOnce(
         audioFile: File,
-        durationMs: Long,
-        locale: String,
     ): IngestionResponse {
-        Log.d(TAG, "Uploading audio: ${audioFile.name} (${audioFile.length()} bytes, ${durationMs}ms)")
+        Log.d(TAG, "Uploading audio: ${audioFile.name} (${audioFile.length()} bytes)")
 
         if (!audioFile.exists()) {
             Log.e(TAG, "Audio file does not exist: ${audioFile.absolutePath}")
@@ -265,8 +262,6 @@ object BackendService {
         val response = apiService.uploadAudioForTranscription(
             authorization = authorization,
             audio = part,
-            durationMs = durationMs.toString(),
-            locale = locale,
         )
 
         Log.d(TAG, "Upload successful. Transcript length: ${response.transcript.length}")

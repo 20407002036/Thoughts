@@ -13,6 +13,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import retrofit2.http.Header
 import retrofit2.http.Body
 import retrofit2.http.POST
 import java.util.concurrent.TimeUnit
@@ -28,13 +29,14 @@ interface AuthApiService {
     suspend fun refresh(@Body request: AuthRefreshRequest): ResponseBody
 
     @POST("v1/auth/logout")
-    suspend fun logout(): ResponseBody
+    suspend fun logout(@Header("Authorization") authorization: String): ResponseBody
 }
 
 object AuthRepository {
     private val json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
+        explicitNulls = false
     }
 
     private val client = OkHttpClient.Builder()
@@ -68,7 +70,6 @@ object AuthRepository {
                     AuthSignUpRequest(
                         email = email.trim(),
                         password = password,
-                        displayName = displayName.trim().ifBlank { null },
                     )
                 ).string()
             )
@@ -85,7 +86,11 @@ object AuthRepository {
         runCatching {
             // POST /v1/auth/logout requires authentication header but no body
             val currentSession = session ?: return@runCatching Unit
-            api.logout().string()
+            val authorization = currentSession.accessToken.trim().takeIf { it.isNotBlank() }
+                ?.let { "Bearer $it" }
+                ?: return@runCatching Unit
+
+            api.logout(authorization).string()
             Unit
         }
     }
@@ -100,20 +105,30 @@ object AuthRepository {
             "Authentication succeeded, but the server response was not a JSON object."
         )
 
+        // README contract returns: { "user": {...}, "session": {"access_token":..., "refresh_token":...} }
+        val session = root["session"]?.jsonObjectOrNull()
+        val user = root["user"]?.jsonObjectOrNull()
         val data = root["data"]?.jsonObjectOrNull() ?: root
-        val token = stringValue(data, "accessToken", "access_token", "token", "jwt", "sessionToken", "session_token")
+
+        val token = session?.let { stringValue(it, "accessToken", "access_token", "token", "jwt", "sessionToken", "session_token") }
+            ?: stringValue(data, "accessToken", "access_token", "token", "jwt", "sessionToken", "session_token")
             ?: stringValue(root, "accessToken", "access_token", "token", "jwt", "sessionToken", "session_token")
             ?: throw IllegalStateException("Authentication succeeded, but no token was returned by the server.")
 
         return AuthSession(
             accessToken = token,
-            refreshToken = stringValue(data, "refreshToken", "refresh_token")
+            refreshToken = session?.let { stringValue(it, "refreshToken", "refresh_token") }
+                ?: stringValue(data, "refreshToken", "refresh_token")
                 ?: stringValue(root, "refreshToken", "refresh_token"),
-            userId = stringValue(data, "userId", "user_id", "id")
+            userId = user?.let { stringValue(it, "userId", "user_id", "id") }
+                ?: stringValue(data, "userId", "user_id", "id")
                 ?: stringValue(root, "userId", "user_id", "id"),
-            email = stringValue(data, "email") ?: stringValue(root, "email"),
-            displayName = stringValue(data, "displayName", "display_name", "name")
-                ?: stringValue(root, "displayName", "display_name", "name"),
+            email = user?.let { stringValue(it, "email") }
+                ?: stringValue(data, "email")
+                ?: stringValue(root, "email"),
+            displayName = user?.let { stringValue(it, "displayName", "display_name", "name", "full_name") }
+                ?: stringValue(data, "displayName", "display_name", "name", "full_name")
+                ?: stringValue(root, "displayName", "display_name", "name", "full_name"),
         )
     }
 

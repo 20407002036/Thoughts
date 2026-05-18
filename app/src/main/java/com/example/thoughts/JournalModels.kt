@@ -181,6 +181,8 @@ data class IngestionResponse(
     val analysis: IngestionAnalysis? = null,
     @SerialName("audio_path")
     val audioPath: String? = null,
+    @SerialName("audio_url")
+    val audioUrl: String? = null,
     @SerialName("audio_signed_url")
     val audioSignedUrl: String? = null,
     @SerialName("prompt_version")
@@ -205,7 +207,7 @@ data class IngestionResponse(
         get() = analysis?.themes ?: emptyList()
 
     val audioRemoteUrl: String?
-        get() = audioSignedUrl
+        get() = audioSignedUrl ?: audioUrl
 
     val processingDurationMs: Long?
         get() = null
