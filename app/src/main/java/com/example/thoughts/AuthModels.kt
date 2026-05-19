@@ -13,6 +13,8 @@ data class AuthLoginRequest(
 data class AuthSignUpRequest(
     val email: String,
     val password: String,
+    @SerialName("full_name")
+    val displayName: String,
 )
 
 @Serializable

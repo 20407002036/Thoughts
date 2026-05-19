@@ -418,6 +418,8 @@ data class ProfileResponse(
     val user_id: String? = null,
     val email: String? = null,
     val full_name: String? = null,
+    val display_name: String? = null,
+    val name: String? = null,
     val avatar_url: String? = null,
     val bio: String? = null,
     val streak_count: Int = 0,
@@ -425,11 +427,15 @@ data class ProfileResponse(
     val updated_at: String? = null,
 ) {
     // Compatibility accessors
-    val display_name: String? get() = full_name
+    val display_name_compat: String? 
+        get() = full_name?.takeIf { it.isNotBlank() } 
+            ?: display_name?.takeIf { it.isNotBlank() } 
+            ?: name?.takeIf { it.isNotBlank() }
+            
     val tagline: String? get() = bio
     val initials: String?
         get() = runCatching {
-            full_name?.split(" ")
+            display_name_compat?.split(" ")
                 ?.mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
                 ?.take(2)
                 ?.joinToString("")

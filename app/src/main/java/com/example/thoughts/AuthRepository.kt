@@ -70,6 +70,7 @@ object AuthRepository {
                     AuthSignUpRequest(
                         email = email.trim(),
                         password = password,
+                        displayName = displayName.trim(),
                     )
                 ).string()
             )

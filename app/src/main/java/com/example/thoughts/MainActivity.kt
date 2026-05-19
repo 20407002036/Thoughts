@@ -294,8 +294,13 @@ fun DashboardScreen(navController: NavHostController, journalViewModel: JournalV
 @Composable
 fun DashboardHeader(journalViewModel: JournalViewModel) {
     val profile by journalViewModel.userProfile.collectAsState()
-    val displayName = profile?.display_name?.trim().orEmpty().takeIf { it.isNotBlank() }
-        ?: "there"
+    val session by AuthSessionManager.session.collectAsState()
+    
+    val rawName = profile?.display_name?.trim().orEmpty().ifBlank { 
+        session?.displayName?.trim().orEmpty() 
+    }
+    
+    val firstName = rawName.split(" ").firstOrNull { it.isNotBlank() } ?: "there"
 
     Column(
         modifier = Modifier
@@ -303,7 +308,7 @@ fun DashboardHeader(journalViewModel: JournalViewModel) {
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Text(
-            "Welcome, ${displayName.split(" ").first()}",
+            "Welcome, $firstName",
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp

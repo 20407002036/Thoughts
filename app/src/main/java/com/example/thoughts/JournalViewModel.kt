@@ -64,9 +64,25 @@ class JournalViewModel(
     val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
 
     init {
+        // Dashboard
         viewModelScope.launch {
             JournalRepository.getDashboardFlow().collect {
                 _dashboard.value = it
+            }
+        }
+        // Drafts
+        viewModelScope.launch {
+            val latest = JournalRepository.getLatestDraft()
+            if (latest != null) {
+                _currentDraft.value = latest
+            }
+        }
+        // Profile
+        viewModelScope.launch {
+            JournalRepository.getProfileFlow().collect { profile ->
+                if (profile != null) {
+                    _userProfile.value = profile
+                }
             }
         }
     }
@@ -78,15 +94,6 @@ class JournalViewModel(
     private var audioFile: File? = null
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
-
-    init {
-        viewModelScope.launch {
-            val latest = JournalRepository.getLatestDraft()
-            if (latest != null) {
-                _currentDraft.value = latest
-            }
-        }
-    }
 
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
@@ -323,7 +330,6 @@ class JournalViewModel(
     fun loadProfile() {
         viewModelScope.launch {
             JournalRepository.refreshProfile()
-            JournalRepository.getProfileFlow().collect { _userProfile.value = it }
         }
     }
 

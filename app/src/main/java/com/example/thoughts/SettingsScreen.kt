@@ -69,13 +69,17 @@ fun SettingsScreen(navController: NavHostController, journalViewModel: JournalVi
     }
 
     val profile by journalViewModel.userProfile.collectAsState()
-    val displayName = profile?.display_name?.trim().orEmpty().takeIf { it.isNotBlank() }
-        ?: session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() }
-        ?: "Connected account"
-    val email = profile?.email?.trim().orEmpty().takeIf { it.isNotBlank() }
-        ?: session?.email?.trim().orEmpty().takeIf { it.isNotBlank() }
-        ?: "Signed in"
-    val avatarLabel = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    
+    val rawName = profile?.display_name_compat?.trim().orEmpty().ifBlank {
+        session?.displayName?.trim().orEmpty() 
+    }
+    val displayName = rawName.ifBlank { "Connected account" }
+    
+    val email = profile?.email?.trim().orEmpty().ifBlank { 
+        session?.email?.trim().orEmpty() 
+    }.ifBlank { "Signed in" }
+    
+    val avatarLabel = displayName.firstOrNull { it.isLetter() }?.uppercaseChar()?.toString() ?: "?"
 
     val notificationsStatus = if (prefs?.notifications_enabled == true) "Enabled" else "Disabled"
     val appearanceMode = prefs?.appearance_mode?.replaceFirstChar { it.uppercase() } ?: "Auto"
