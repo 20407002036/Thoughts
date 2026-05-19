@@ -13,7 +13,7 @@ import androidx.room.RoomDatabase
         TranscriptEntity::class,
         DashboardCacheEntity::class
     ],
-    version = 3
+    version = 1
 )
 abstract class ThoughtsDatabase : RoomDatabase() {
     abstract fun journalDao(): JournalDao
@@ -29,7 +29,6 @@ abstract class ThoughtsDatabase : RoomDatabase() {
                     ThoughtsDatabase::class.java,
                     "thoughts_database"
                 )
-                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance

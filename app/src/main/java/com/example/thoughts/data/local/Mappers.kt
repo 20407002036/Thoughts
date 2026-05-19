@@ -28,7 +28,7 @@ fun JournalEntryEntity.toDomain(): JournalEntry {
         title = title,
         createdAtMillis = createdAtMillis,
         recordedAtMillis = recordedAtMillis,
-        transcript = Transcript(id = "transcript-$id", recordingSessionId = recordingSessionId, fullText = ""),
+        transcript = Transcript(id = transcriptId, recordingSessionId = recordingSessionId, fullText = ""),
         takeaway = takeaway,
         status = JournalEntryStatus.fromString(status),
     )
@@ -49,16 +49,20 @@ fun JournalEntry.toEntity(): JournalEntryEntity {
     )
 }
 
-fun JournalDraftEntity.toDomain(): JournalEntryDraft {
+fun JournalDraftEntity.toDomain(audioAssetEntity: AudioAssetEntity?): JournalEntryDraft {
     return JournalEntryDraft(
         id = id,
         recordingSessionId = recordingSessionId,
         title = title,
         transcriptText = transcriptText,
-        audioAsset = null, // Would be resolved by audioAssetId
+        audioAsset = audioAssetEntity?.toDomain(),
         takeaway = takeaway,
         updatedAtMillis = updatedAtMillis
     )
+}
+
+fun JournalDraftEntity.toDomain(): JournalEntryDraft {
+    return toDomain(audioAssetEntity = null)
 }
 
 fun JournalEntryDraft.toEntity(): JournalDraftEntity {

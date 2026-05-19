@@ -64,11 +64,15 @@ object JournalRepository {
     }
 
     suspend fun refreshEntries() {
-        BackendService.listJournalEntries().onSuccess { response ->
-            response.entries.forEach { summary ->
-                dao.insertEntry(summary.toEntity())
+        BackendService.listJournalEntries(limit = 50)
+            .onSuccess { response ->
+                response.entries.forEach { summary ->
+                    dao.insertEntry(summary.toEntity())
+                }
             }
-        }
+            .onFailure { error ->
+                Log.e(TAG, "Failed to load journal entries", error)
+            }
     }
 
     suspend fun getEntry(id: String): Result<JournalEntry> {
