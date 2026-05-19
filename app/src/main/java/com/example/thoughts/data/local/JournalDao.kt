@@ -43,4 +43,10 @@ interface JournalDao {
 
     @Query("SELECT * FROM transcripts WHERE id = :id")
     suspend fun getTranscriptById(id: String): TranscriptEntity?
+
+    @Query("SELECT * FROM dashboard_cache WHERE id = :id")
+    fun getDashboardCache(id: String): Flow<DashboardCacheEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveDashboardCache(cache: DashboardCacheEntity)
 }

@@ -18,7 +18,13 @@ enum class AudioUploadState {
     Uploading,
     Processing,
     Uploaded,
-    Failed,
+    Failed;
+
+    companion object {
+        fun fromString(value: String): AudioUploadState {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Local
+        }
+    }
 }
 
 @Serializable
