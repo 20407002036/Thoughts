@@ -48,3 +48,13 @@ data class TranscriptEntity(
     val languageTag: String,
     val confidence: Float?,
 )
+
+@Entity(tableName = "dashboard_cache")
+data class DashboardCacheEntity(
+    @PrimaryKey val id: String = "current_dashboard",
+    val prompt: String?,
+    val promptStatus: String,
+    val streakCount: Int,
+    val entryCount: Int,
+    val updatedAtMillis: Long
+)

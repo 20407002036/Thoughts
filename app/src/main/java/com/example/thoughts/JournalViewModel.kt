@@ -63,6 +63,14 @@ class JournalViewModel(
     private val _dashboard = MutableStateFlow<DashboardResponse?>(null)
     val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            JournalRepository.getDashboardFlow().collect {
+                _dashboard.value = it
+            }
+        }
+    }
+
     private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
     val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
 
@@ -321,9 +329,7 @@ class JournalViewModel(
 
     fun loadDashboard() {
         viewModelScope.launch {
-            BackendService.getDashboard()
-                .onSuccess { _dashboard.value = it }
-                .onFailure { Log.e(TAG, "Failed to load dashboard", it) }
+            JournalRepository.refreshDashboard()
         }
     }
 

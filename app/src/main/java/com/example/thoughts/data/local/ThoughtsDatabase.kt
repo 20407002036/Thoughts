@@ -10,9 +10,10 @@ import androidx.room.RoomDatabase
         JournalEntryEntity::class,
         JournalDraftEntity::class,
         AudioAssetEntity::class,
-        TranscriptEntity::class
+        TranscriptEntity::class,
+        DashboardCacheEntity::class
     ],
-    version = 2
+    version = 3
 )
 abstract class ThoughtsDatabase : RoomDatabase() {
     abstract fun journalDao(): JournalDao
