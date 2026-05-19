@@ -48,6 +48,10 @@ object JournalRepository {
 
     // --- Drafts & Uploads ---
 
+    suspend fun getLatestDraft(): JournalEntryDraft? {
+        return dao.getLatestDraft()?.toDomain()
+    }
+
     suspend fun saveDraft(draft: JournalEntryDraft) {
         dao.insertDraft(draft.toEntity())
     }

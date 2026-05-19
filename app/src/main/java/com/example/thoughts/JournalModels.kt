@@ -9,7 +9,13 @@ enum class RecordingStatus {
     Paused,
     Finished,
     Discarded,
-    Error,
+    Error;
+
+    companion object {
+        fun fromString(value: String): RecordingStatus {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Idle
+        }
+    }
 }
 
 @Serializable
@@ -18,7 +24,13 @@ enum class AudioUploadState {
     Uploading,
     Processing,
     Uploaded,
-    Failed,
+    Failed;
+
+    companion object {
+        fun fromString(value: String): AudioUploadState {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Local
+        }
+    }
 }
 
 @Serializable

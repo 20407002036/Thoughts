@@ -30,7 +30,7 @@ fun JournalEntryEntity.toDomain(): JournalEntry {
         recordedAtMillis = recordedAtMillis,
         transcript = Transcript(id = "transcript-$id", recordingSessionId = recordingSessionId, fullText = ""),
         takeaway = takeaway,
-        status = JournalEntryStatus.valueOf(status),
+        status = JournalEntryStatus.fromString(status),
     )
 }
 
@@ -95,6 +95,6 @@ fun AudioAssetEntity.toDomain(): AudioAsset {
         mimeType = mimeType,
         durationMs = durationMs,
         sizeBytes = sizeBytes,
-        uploadState = AudioUploadState.valueOf(uploadState)
+        uploadState = AudioUploadState.fromString(uploadState)
     )
 }

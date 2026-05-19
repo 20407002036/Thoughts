@@ -17,6 +17,9 @@ interface JournalDao {
     @Query("DELETE FROM journal_entries WHERE id = :id")
     suspend fun deleteEntry(id: String)
 
+    @Query("SELECT * FROM journal_drafts ORDER BY updatedAtMillis DESC LIMIT 1")
+    suspend fun getLatestDraft(): JournalDraftEntity?
+
     @Query("SELECT * FROM journal_drafts ORDER BY updatedAtMillis DESC")
     fun getAllDrafts(): Flow<List<JournalDraftEntity>>
 
