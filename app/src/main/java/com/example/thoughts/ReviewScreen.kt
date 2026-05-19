@@ -66,7 +66,6 @@ import androidx.compose.ui.text.withStyle
 fun ReviewScreen(navController: NavHostController, journalViewModel: JournalViewModel) {
     val draft = journalViewModel.currentDraft.collectAsState().value ?: createFallbackDraft()
     val uploadState = journalViewModel.uploadState.collectAsState().value
-    val uploadError = journalViewModel.uploadError.collectAsState().value
     val backendResult = journalViewModel.backendResult.collectAsState().value
 
     Scaffold(
@@ -109,56 +108,6 @@ fun ReviewScreen(navController: NavHostController, journalViewModel: JournalView
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
-                }
-            }
-        } else if (uploadState == AudioUploadState.Failed && uploadError != null) {
-            // Error state same as before but with Mindful styling
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(32.dp)
-                ) {
-                    Text(
-                        "Upload Failed",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        uploadError,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = { navController.popBackStack() },
-                            modifier = Modifier.weight(1f),
-                            shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Text("Back", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Button(
-                            onClick = { journalViewModel.retryUpload() },
-                            modifier = Modifier.weight(1f),
-                            shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("Retry")
-                        }
-                    }
                 }
             }
         } else {

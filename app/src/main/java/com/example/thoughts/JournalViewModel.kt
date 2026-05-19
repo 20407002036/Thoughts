@@ -5,10 +5,15 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.example.thoughts.ui.events.UiAction
+import com.example.thoughts.ui.events.UiEvent
+import com.example.thoughts.ui.popup.PopupKind
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
@@ -36,6 +41,9 @@ class JournalViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
+    private val _uiEvents = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
+    val uiEvents = _uiEvents.asSharedFlow()
+
     private val _currentDraft = MutableStateFlow<JournalEntryDraft?>(null)
     val currentDraft: StateFlow<JournalEntryDraft?> = _currentDraft.asStateFlow()
 
@@ -227,6 +235,13 @@ class JournalViewModel(
 
         // Start upload
         uploadRetryCount = 0
+
+        _uiEvents.tryEmit(
+            UiEvent.Toast(
+                message = "Transcription started",
+                kind = PopupKind.Success,
+            )
+        )
         uploadAudioToBackend()
     }
 
@@ -291,6 +306,17 @@ class JournalViewModel(
                     _uploadState.value = AudioUploadState.Failed
                     JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Failed)
                     _uploadError.value = exception.message ?: "Upload failed"
+
+                    _uiEvents.tryEmit(
+                        UiEvent.Modal(
+                            kind = PopupKind.Error,
+                            title = "Upload Interrupted",
+                            message = "We couldn't reach the sanctuary. Please check your connection and try again.",
+                            primaryLabel = "Try Again",
+                            secondaryLabel = "Dismiss",
+                            action = UiAction.RetryUpload,
+                        )
+                    )
                 }
             }
         }

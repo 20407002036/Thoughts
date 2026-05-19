@@ -85,11 +85,11 @@ fun ProcessingScreen(navController: NavHostController, journalViewModel: Journal
                             .padding(top = 18.dp), color = MaterialTheme.colorScheme.primary)
 
                         if (uploadState == AudioUploadState.Failed) {
-                            Text("Upload failed. Tap Retry or Cancel.", color = MaterialTheme.colorScheme.error)
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Button(onClick = { journalViewModel.retryUpload() }) { Text("Retry") }
-                                Button(onClick = { navController.navigate(Screen.Record.route) }) { Text("Cancel") }
-                            }
+                            Text(
+                                "Upload failed.",
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 12.dp)
+                            )
                         } else {
                             Button(onClick = { navController.navigate(Screen.Record.route) }, modifier = Modifier.padding(top = 8.dp)) {
                                 Text("Cancel Transcription")
