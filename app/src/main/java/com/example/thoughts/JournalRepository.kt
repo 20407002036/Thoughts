@@ -1,11 +1,14 @@
 package com.example.thoughts
 
 import android.content.Context
+import android.util.Log
 import com.example.thoughts.data.local.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+
+private const val TAG = "JournalRepository"
 
 object JournalRepository {
     private lateinit var database: ThoughtsDatabase
@@ -35,17 +38,21 @@ object JournalRepository {
     }
 
     suspend fun refreshDashboard() {
-        BackendService.getDashboard().onSuccess { response ->
-            dao.saveDashboardCache(
-                DashboardCacheEntity(
-                    prompt = response.prompt,
-                    promptStatus = response.prompt_status,
-                    streakCount = response.streak_count,
-                    entryCount = response.entry_count,
-                    updatedAtMillis = System.currentTimeMillis()
+        BackendService.getDashboard()
+            .onSuccess { response ->
+                dao.saveDashboardCache(
+                    DashboardCacheEntity(
+                        prompt = response.prompt,
+                        promptStatus = response.prompt_status,
+                        streakCount = response.streak_count,
+                        entryCount = response.entry_count,
+                        updatedAtMillis = System.currentTimeMillis()
+                    )
                 )
-            )
-        }
+            }
+            .onFailure { error ->
+                Log.e(TAG, "Failed to load dashboard", error)
+            }
     }
 
     // --- Journal Entries ---
