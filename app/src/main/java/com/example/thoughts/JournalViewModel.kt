@@ -36,10 +36,10 @@ class JournalViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
-    private val _currentDraft = MutableStateFlow(readDraftFromState())
+    private val _currentDraft = MutableStateFlow<JournalEntryDraft?>(null)
     val currentDraft: StateFlow<JournalEntryDraft?> = _currentDraft.asStateFlow()
 
-    private val _recordingSession = MutableStateFlow(readRecordingSessionFromState())
+    private val _recordingSession = MutableStateFlow(RecordingSession(id = "", startedAtMillis = System.currentTimeMillis()))
     val recordingSession: StateFlow<RecordingSession> = _recordingSession.asStateFlow()
 
     private val _uploadState = MutableStateFlow(AudioUploadState.Local)
@@ -63,6 +63,14 @@ class JournalViewModel(
     private val _dashboard = MutableStateFlow<DashboardResponse?>(null)
     val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            JournalRepository.getDashboardFlow().collect {
+                _dashboard.value = it
+            }
+        }
+    }
+
     private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
     val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
 
@@ -71,16 +79,32 @@ class JournalViewModel(
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
 
+    init {
+        viewModelScope.launch {
+            val latest = JournalRepository.getLatestDraft()
+            if (latest != null) {
+                _currentDraft.value = latest
+            }
+        }
+    }
+
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
-        persistDraft(draft)
+        viewModelScope.launch {
+            JournalRepository.saveDraft(draft)
+        }
     }
 
     fun ensureDraftInitialized() {
         if (_currentDraft.value == null) {
             val now = System.currentTimeMillis()
-            saveDraft(createDefaultDraft(now))
+            val draft = createDefaultDraft(now)
+            saveDraft(draft)
         }
+    }
+
+    private fun currentDraftOrDefault(): JournalEntryDraft {
+        return _currentDraft.value ?: createDefaultDraft(System.currentTimeMillis())
     }
 
     fun beginRecording() {
@@ -170,13 +194,29 @@ class JournalViewModel(
         stopTimer()
 
         val now = System.currentTimeMillis()
-        val updated = _recordingSession.value.copy(
+        val session = _recordingSession.value
+        val updated = session.copy(
             status = RecordingStatus.Finished,
             endedAtMillis = now,
-            durationMs = now - _recordingSession.value.startedAtMillis,
+            durationMs = now - session.startedAtMillis,
         )
         _recordingSession.value = updated
         persistRecordingSession(updated)
+
+        // Save AudioAsset metadata for tracking
+        val asset = AudioAsset(
+            id = "asset-${updated.id}",
+            recordingSessionId = updated.id,
+            localPath = audioFile?.absolutePath,
+            durationMs = updated.durationMs,
+            uploadState = AudioUploadState.Local
+        )
+        viewModelScope.launch {
+            JournalRepository.saveAudioAsset(asset)
+            // Link asset to draft
+            val currentDraft = currentDraftOrDefault()
+            saveDraft(currentDraft.copy(audioAsset = asset))
+        }
 
         // Start upload
         uploadRetryCount = 0
@@ -206,8 +246,13 @@ class JournalViewModel(
             return
         }
 
+        val assetId = "asset-${_recordingSession.value.id}"
         _uploadState.value = AudioUploadState.Uploading
         _uploadError.value = null
+
+        viewModelScope.launch {
+            JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Uploading)
+        }
 
         viewModelScope.launch {
             val durationMs = _recordingSession.value.durationMs
@@ -222,6 +267,7 @@ class JournalViewModel(
             result.onSuccess { response ->
                 Log.d(TAG, "Upload successful: ${response.transcript.take(100)}")
                 _uploadState.value = AudioUploadState.Processing
+                JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Processing)
                 processingComplete(response)
             }
 
@@ -236,6 +282,7 @@ class JournalViewModel(
                     uploadAudioToBackend()
                 } else {
                     _uploadState.value = AudioUploadState.Failed
+                    JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Failed)
                     _uploadError.value = exception.message ?: "Upload failed"
                 }
             }
@@ -249,12 +296,9 @@ class JournalViewModel(
 
     fun loadArchivedEntries() {
         viewModelScope.launch {
-            val result = BackendService.listJournalEntries(limit = 50)
-            result.onSuccess { response: JournalEntriesResponse ->
-                _archivedEntries.value = response.entries.map { it.toArchiveEntrySummary() }
-            }
-            result.onFailure { error ->
-                Log.e(TAG, "Failed to load archived entries", error)
+            JournalRepository.refreshEntries()
+            JournalRepository.getEntries().collect { entries ->
+                _archivedEntries.value = entries.map { it.toArchiveEntrySummary() }
             }
         }
     }
@@ -265,9 +309,9 @@ class JournalViewModel(
 
     fun loadEntry(id: String) {
         viewModelScope.launch {
-            val result = BackendService.getJournalEntry(id)
-            result.onSuccess { response ->
-                _selectedEntry.value = response.toJournalEntry()
+            val result = JournalRepository.getEntry(id)
+            result.onSuccess { entry ->
+                _selectedEntry.value = entry
             }
             result.onFailure { error ->
                 Log.e(TAG, "Failed to load entry: $id", error)
@@ -278,31 +322,32 @@ class JournalViewModel(
 
     fun loadProfile() {
         viewModelScope.launch {
-            BackendService.getProfile()
-                .onSuccess { _userProfile.value = it }
-                .onFailure { Log.e(TAG, "Failed to load profile", it) }
+            JournalRepository.refreshProfile()
+            JournalRepository.getProfileFlow().collect { _userProfile.value = it }
         }
     }
 
     fun loadDashboard() {
         viewModelScope.launch {
-            BackendService.getDashboard()
-                .onSuccess { _dashboard.value = it }
-                .onFailure { Log.e(TAG, "Failed to load dashboard", it) }
+            JournalRepository.refreshDashboard()
         }
     }
 
     fun loadPreferences() {
         viewModelScope.launch {
-            BackendService.getPreferences()
-                .onSuccess { _userPreferences.value = it }
-                .onFailure { Log.e(TAG, "Failed to load preferences", it) }
+            JournalRepository.refreshPreferences()
+            JournalRepository.getPreferencesFlow().collect { _userPreferences.value = it }
         }
     }
 
     private fun processingComplete(response: IngestionResponse) {
         _backendResult.value = response
         _uploadState.value = AudioUploadState.Uploaded
+
+        val assetId = "asset-${_recordingSession.value.id}"
+        viewModelScope.launch {
+            JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Uploaded)
+        }
 
         // Update draft with backend results
         val tags = response.tags.map { JournalTag(it, TagSource.Generated) }
@@ -354,17 +399,14 @@ class JournalViewModel(
     }
 
     fun clearDraft() {
+        val currentId = _currentDraft.value?.id
         _currentDraft.value = null
-        savedStateHandle.remove<String>(DraftIdKey)
-        savedStateHandle.remove<String>(RecordingSessionIdKey)
-        savedStateHandle.remove<String>(TitleKey)
-        savedStateHandle.remove<String>(TranscriptTextKey)
-        savedStateHandle.remove<String>(TagsKey)
-        savedStateHandle.remove<String>(MoodLabelKey)
-        savedStateHandle.remove<Float>(MoodScoreKey)
-        savedStateHandle.remove<String>(MoodExplanationKey)
-        savedStateHandle.remove<String>(TakeawayKey)
-        savedStateHandle.remove<Long>(UpdatedAtKey)
+        if (currentId != null) {
+            viewModelScope.launch {
+                JournalRepository.deleteDraft(currentId)
+            }
+        }
+
         _recordingSession.value = RecordingSession(
             id = "",
             startedAtMillis = System.currentTimeMillis(),
@@ -376,58 +418,13 @@ class JournalViewModel(
         savedStateHandle.remove<String>(RecordingStatusKey)
     }
 
-    private fun readDraftFromState(): JournalEntryDraft? {
-        val draftId = savedStateHandle.get<String>(DraftIdKey) ?: return null
-        val recordingSessionId = savedStateHandle.get<String>(RecordingSessionIdKey) ?: return null
-        val transcriptText = savedStateHandle.get<String>(TranscriptTextKey) ?: return null
-        val updatedAtMillis = savedStateHandle.get<Long>(UpdatedAtKey) ?: System.currentTimeMillis()
-        val tags = savedStateHandle.get<String>(TagsKey)
-            ?.split("|")
-            ?.filter { it.isNotBlank() }
-            ?.map { JournalTag(name = it) }
-            ?: emptyList()
-        val moodLabel = savedStateHandle.get<String>(MoodLabelKey)
-        val moodScore = savedStateHandle.get<Float>(MoodScoreKey)
-        val moodExplanation = savedStateHandle.get<String>(MoodExplanationKey)
-
-        return JournalEntryDraft(
-            id = draftId,
-            recordingSessionId = recordingSessionId,
-            title = savedStateHandle.get<String>(TitleKey),
-            transcriptText = transcriptText,
-            tags = tags,
-            moodAnalysis = moodLabel?.let {
-                MoodAnalysis(
-                    label = it,
-                    score = moodScore ?: 0f,
-                    explanation = moodExplanation,
-                )
-            },
-            takeaway = savedStateHandle.get<String>(TakeawayKey),
-            updatedAtMillis = updatedAtMillis,
-        )
-    }
-
-    private fun persistDraft(draft: JournalEntryDraft) {
-        savedStateHandle[DraftIdKey] = draft.id
-        savedStateHandle[RecordingSessionIdKey] = draft.recordingSessionId
-        savedStateHandle[TitleKey] = draft.title
-        savedStateHandle[TranscriptTextKey] = draft.transcriptText
-        savedStateHandle[TagsKey] = draft.tags.joinToString("|") { it.name }
-        savedStateHandle[MoodLabelKey] = draft.moodAnalysis?.label
-        savedStateHandle[MoodScoreKey] = draft.moodAnalysis?.score
-        savedStateHandle[MoodExplanationKey] = draft.moodAnalysis?.explanation
-        savedStateHandle[TakeawayKey] = draft.takeaway
-        savedStateHandle[UpdatedAtKey] = draft.updatedAtMillis
-    }
-
     private fun readRecordingSessionFromState(): RecordingSession {
         val id = savedStateHandle.get<String>(RecordingIdKey) ?: ""
         val startedAtMillis = savedStateHandle.get<Long>(RecordingStartedAtKey) ?: System.currentTimeMillis()
         val endedAtMillis = savedStateHandle.get<Long>(RecordingEndedAtKey)
         val durationMs = savedStateHandle.get<Long>(RecordingDurationKey) ?: 0L
         val status = savedStateHandle.get<String>(RecordingStatusKey)
-            ?.let { runCatching { RecordingStatus.valueOf(it) }.getOrNull() }
+            ?.let { RecordingStatus.fromString(it) }
             ?: RecordingStatus.Idle
 
         return RecordingSession(
@@ -466,15 +463,6 @@ fun createDefaultDraft(now: Long): JournalEntryDraft {
         moodAnalysis = null,
         takeaway = null,
         updatedAtMillis = now,
-    )
-}
-
-fun currentDraftOrDefault(): JournalEntryDraft {
-    return JournalEntryDraft(
-        id = "",
-        recordingSessionId = "",
-        transcriptText = "",
-        updatedAtMillis = System.currentTimeMillis(),
     )
 }
 

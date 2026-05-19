@@ -9,7 +9,13 @@ enum class RecordingStatus {
     Paused,
     Finished,
     Discarded,
-    Error,
+    Error;
+
+    companion object {
+        fun fromString(value: String): RecordingStatus {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Idle
+        }
+    }
 }
 
 @Serializable
@@ -18,7 +24,13 @@ enum class AudioUploadState {
     Uploading,
     Processing,
     Uploaded,
-    Failed,
+    Failed;
+
+    companion object {
+        fun fromString(value: String): AudioUploadState {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Local
+        }
+    }
 }
 
 @Serializable
@@ -27,6 +39,13 @@ enum class JournalEntryStatus {
     Ready,
     Saved,
     Uploaded,
+    Completed;
+
+    companion object {
+        fun fromString(value: String): JournalEntryStatus {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Draft
+        }
+    }
 }
 
 @Serializable
@@ -341,7 +360,18 @@ fun JournalEntrySummaryResponse.toArchiveEntrySummary(): ArchiveEntrySummary {
     )
 }
 
-private fun parseIso8601ToMillis(value: String): Long {
+fun JournalEntry.toArchiveEntrySummary(): ArchiveEntrySummary {
+    return ArchiveEntrySummary(
+        id = id,
+        title = title.orEmpty().ifBlank { "Journal entry" },
+        createdAtMillis = createdAtMillis,
+        summary = takeaway.orEmpty(),
+        status = status.name,
+        moodLabel = moodAnalysis?.label
+    )
+}
+
+internal fun parseIso8601ToMillis(value: String): Long {
     return runCatching {
         java.time.Instant.parse(value).toEpochMilli()
     }.getOrElse {
@@ -385,9 +415,9 @@ fun JournalEntry.toUploadRequest() = EntryUploadRequest(
 
 @Serializable
 data class ProfileResponse(
-    val user_id: String,
-    val email: String,
-    val full_name: String,
+    val user_id: String? = null,
+    val email: String? = null,
+    val full_name: String? = null,
     val avatar_url: String? = null,
     val bio: String? = null,
     val streak_count: Int = 0,
@@ -395,14 +425,14 @@ data class ProfileResponse(
     val updated_at: String? = null,
 ) {
     // Compatibility accessors
-    val display_name: String get() = full_name
+    val display_name: String? get() = full_name
     val tagline: String? get() = bio
     val initials: String?
         get() = runCatching {
-            full_name.split(" ")
-                .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
-                .take(2)
-                .joinToString("")
+            full_name?.split(" ")
+                ?.mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+                ?.take(2)
+                ?.joinToString("")
         }.getOrNull()
 
     // Backwards-compatible default fields used by the Android app UI
