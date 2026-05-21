@@ -87,7 +87,7 @@ data class AudioAsset(
     val recordingSessionId: String,
     val localPath: String? = null,
     val remoteUrl: String? = null,
-    val mimeType: String = "audio/m4a",
+    val mimeType: String = "audio/wav",
     val durationMs: Long = 0L,
     val sizeBytes: Long? = null,
     val uploadState: AudioUploadState = AudioUploadState.Local,

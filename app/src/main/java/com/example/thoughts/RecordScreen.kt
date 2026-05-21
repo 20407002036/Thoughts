@@ -79,6 +79,8 @@ import androidx.compose.ui.text.style.TextAlign
 @Composable
 fun RecordScreen(navController: NavHostController, journalViewModel: JournalViewModel) {
     val recordingSession by journalViewModel.recordingSession.collectAsState()
+    val liveTranscript by journalViewModel.liveTranscriptText.collectAsState()
+    val liveTranscriptError by journalViewModel.liveTranscriptError.collectAsState()
     val context = LocalContext.current
     var hasPermission by remember {
         mutableStateOf(
@@ -155,7 +157,11 @@ fun RecordScreen(navController: NavHostController, journalViewModel: JournalView
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Today I had a hard time concentrating. I was very worried about making mistakes, very angry...",
+                        text = when {
+                            liveTranscript.isNotBlank() -> liveTranscript
+                            liveTranscriptError != null -> "Live transcription unavailable right now. Your recording will still be saved."
+                            else -> "Today I had a hard time concentrating. I was very worried about making mistakes, very angry..."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,

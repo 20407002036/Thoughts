@@ -10,7 +10,7 @@ import java.util.Locale
 private const val TAG = "AudioFileManager"
 private const val AUDIO_DIR = "thoughts_audio"
 private const val AUDIO_PREFIX = "recording_"
-private const val AUDIO_EXTENSION = ".m4a"
+private const val AUDIO_EXTENSION = ".wav"
 
 object AudioFileManager {
     
