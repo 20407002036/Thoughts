@@ -184,16 +184,32 @@ class AudioRecorder(
             audioRecord = null
         }
 
-        try {
-            recordThread?.join(300)
-        } catch (_: Exception) {
-            // ignore
-        } finally {
-            recordThread = null
-        }
+        waitForRecordThreadToStop()
 
         if (finalizeWav) {
             finalizeWavHeaderSafely()
+        }
+    }
+
+    private fun waitForRecordThreadToStop() {
+        val thread = recordThread ?: return
+        var wasInterrupted = false
+
+        try {
+            thread.interrupt()
+            while (thread.isAlive) {
+                try {
+                    thread.join()
+                } catch (_: InterruptedException) {
+                    wasInterrupted = true
+                    thread.interrupt()
+                }
+            }
+        } finally {
+            recordThread = null
+            if (wasInterrupted) {
+                Thread.currentThread().interrupt()
+            }
         }
     }
 
