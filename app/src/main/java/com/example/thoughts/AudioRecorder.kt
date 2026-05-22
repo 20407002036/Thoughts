@@ -128,10 +128,23 @@ class AudioRecorder(
                 localRecord.read(buffer, 0, buffer.size)
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecord.read failed", e)
-                -1
+                AudioRecord.ERROR
             }
 
-            if (read <= 0) continue
+            if (read < 0) {
+                Log.e(TAG, "AudioRecord.read returned error code: $read")
+                isRunning.set(false)
+                break
+            }
+
+            if (read == 0) {
+                try {
+                    Thread.sleep(10)
+                } catch (_: InterruptedException) {
+                    // ignore
+                }
+                continue
+            }
 
             try {
                 wavWriter?.write(buffer, 0, read)
