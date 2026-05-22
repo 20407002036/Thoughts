@@ -256,7 +256,12 @@ object BackendService {
         val authorization = AuthSessionManager.authorizationHeader()
             ?: throw IllegalStateException("Sign in before uploading your recording.")
 
-        val requestBody = audioFile.asRequestBody("audio/m4a".toMediaType())
+        val mediaType = when (audioFile.extension.lowercase()) {
+            "wav" -> "audio/wav"
+            "m4a" -> "audio/m4a"
+            else -> "application/octet-stream"
+        }
+        val requestBody = audioFile.asRequestBody(mediaType.toMediaType())
         val part = MultipartBody.Part.createFormData("audio", audioFile.name, requestBody)
 
         val response = apiService.uploadAudioForTranscription(

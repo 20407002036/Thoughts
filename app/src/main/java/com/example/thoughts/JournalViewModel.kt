@@ -5,10 +5,15 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.example.thoughts.ui.events.UiAction
+import com.example.thoughts.ui.events.UiEvent
+import com.example.thoughts.ui.popup.PopupKind
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
@@ -36,6 +41,9 @@ class JournalViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
+    private val _uiEvents = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
+    val uiEvents = _uiEvents.asSharedFlow()
+
     private val _currentDraft = MutableStateFlow<JournalEntryDraft?>(null)
     val currentDraft: StateFlow<JournalEntryDraft?> = _currentDraft.asStateFlow()
 
@@ -95,6 +103,23 @@ class JournalViewModel(
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
 
+    // --- Backend live transcription (WebSocket, PCM streaming) ---
+    private var liveTranscriptionClient: LiveTranscriptionWebSocketClient? = null
+    private var liveTranscriptFinalText: String = ""
+    private var liveTranscriptPartialText: String = ""
+
+    private val _liveTranscriptText = MutableStateFlow("")
+    val liveTranscriptText: StateFlow<String> = _liveTranscriptText.asStateFlow()
+
+    private val _liveTranscriptError = MutableStateFlow<String?>(null)
+    val liveTranscriptError: StateFlow<String?> = _liveTranscriptError.asStateFlow()
+
+    private val _isLiveTranscribing = MutableStateFlow(false)
+    val isLiveTranscribing: StateFlow<Boolean> = _isLiveTranscribing.asStateFlow()
+
+    private var lastLiveTranscriptPersistedAtMillis: Long = 0L
+    private var lastLiveTranscriptPersistedText: String = ""
+
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
         viewModelScope.launch {
@@ -127,14 +152,124 @@ class JournalViewModel(
         persistRecordingSession(session)
         ensureDraftInitialized()
 
+        _liveTranscriptText.value = ""
+        _liveTranscriptError.value = null
+        _isLiveTranscribing.value = false
+        liveTranscriptFinalText = ""
+        liveTranscriptPartialText = ""
+        lastLiveTranscriptPersistedAtMillis = 0L
+        lastLiveTranscriptPersistedText = ""
+
+        startBackendLiveTranscription()
+
         // Create audio file and start recording
         audioFile = AudioFileManager.createAudioFile(getApplication())
-        audioRecorder = AudioRecorder(getApplication()).apply {
+        audioRecorder = AudioRecorder(
+            context = getApplication(),
+            onPcmChunk = { bytes, length ->
+                liveTranscriptionClient?.sendPcm(bytes, length)
+            },
+        ).apply {
             start(audioFile!!)
         }
         Log.d(TAG, "Started recording to: ${audioFile?.absolutePath}")
 
         startTimer()
+    }
+
+    private fun startBackendLiveTranscription() {
+        if (liveTranscriptionClient != null) return
+
+        val url = try {
+            ThoughtsApi.liveTranscribeWebSocketUrl()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to build live transcription WS URL", e)
+            _liveTranscriptError.value = "Live transcription unavailable"
+            return
+        }
+
+        val authorization = AuthSessionManager.authorizationHeader()
+
+        liveTranscriptionClient = LiveTranscriptionWebSocketClient(
+            url = url,
+            authorizationHeader = authorization,
+            onOpen = {
+                _isLiveTranscribing.value = true
+            },
+            onMessage = { message ->
+                handleBackendLiveTranscriptionMessage(message)
+            },
+            onFailure = { throwable ->
+                _isLiveTranscribing.value = false
+                _liveTranscriptError.value = throwable.message ?: "Live transcription unavailable"
+            },
+            onClosed = {
+                _isLiveTranscribing.value = false
+            },
+        ).also { it.connect() }
+    }
+
+    private fun stopBackendLiveTranscription(sendStop: Boolean) {
+        val client = liveTranscriptionClient ?: return
+        liveTranscriptionClient = null
+
+        if (sendStop) {
+            try {
+                client.stop()
+            } finally {
+                client.close(reason = "stop")
+            }
+        } else {
+            client.close(reason = "close")
+        }
+
+        _isLiveTranscribing.value = false
+    }
+
+    private fun handleBackendLiveTranscriptionMessage(message: LiveTranscriptionMessage) {
+        if (!message.error.isNullOrBlank()) {
+            _liveTranscriptError.value = message.error
+        }
+
+        if (!message.finalText.isNullOrBlank()) {
+            liveTranscriptFinalText = listOf(liveTranscriptFinalText, message.finalText)
+                .filter { it.isNotBlank() }
+                .joinToString(" ")
+                .trim()
+            liveTranscriptPartialText = ""
+        }
+
+        if (!message.partial.isNullOrBlank()) {
+            liveTranscriptPartialText = message.partial
+        }
+
+        val combined = buildString {
+            if (liveTranscriptFinalText.isNotBlank()) append(liveTranscriptFinalText)
+            if (liveTranscriptPartialText.isNotBlank()) {
+                if (isNotBlank()) append(' ')
+                append(liveTranscriptPartialText)
+            }
+        }.trim()
+
+        if (combined.isNotBlank()) {
+            _liveTranscriptText.value = combined
+            maybePersistLiveTranscript(combined)
+        }
+
+        if (message.sessionEnded == true) {
+            stopBackendLiveTranscription(sendStop = false)
+        }
+    }
+
+    private fun maybePersistLiveTranscript(text: String) {
+        val now = System.currentTimeMillis()
+        val shouldPersist = text != lastLiveTranscriptPersistedText &&
+            (now - lastLiveTranscriptPersistedAtMillis) >= 1000L
+        if (shouldPersist) {
+            lastLiveTranscriptPersistedAtMillis = now
+            lastLiveTranscriptPersistedText = text
+            updateTranscriptText(text)
+        }
     }
 
     private fun startTimer() {
@@ -171,6 +306,7 @@ class JournalViewModel(
             }
             RecordingStatus.Finished -> {
                 audioRecorder?.stop()
+                stopBackendLiveTranscription(sendStop = true)
                 stopTimer()
                 current.copy(
                     status = status,
@@ -180,15 +316,18 @@ class JournalViewModel(
             }
             RecordingStatus.Discarded -> {
                 audioRecorder?.stop()
+                stopBackendLiveTranscription(sendStop = true)
                 stopTimer()
                 current.copy(status = status, endedAtMillis = now)
             }
             RecordingStatus.Error -> {
                 audioRecorder?.stop()
+                stopBackendLiveTranscription(sendStop = true)
                 current.copy(status = status)
             }
             RecordingStatus.Idle -> {
                 audioRecorder?.stop()
+                stopBackendLiveTranscription(sendStop = true)
                 current.copy(status = status)
             }
         }
@@ -198,6 +337,7 @@ class JournalViewModel(
 
     fun finishRecordingAndUpload() {
         audioRecorder?.stop()
+        stopBackendLiveTranscription(sendStop = true)
         stopTimer()
 
         val now = System.currentTimeMillis()
@@ -211,10 +351,16 @@ class JournalViewModel(
         persistRecordingSession(updated)
 
         // Save AudioAsset metadata for tracking
+        val assetMimeType = when (audioFile?.extension?.lowercase()) {
+            "wav" -> "audio/wav"
+            "m4a" -> "audio/m4a"
+            else -> "application/octet-stream"
+        }
         val asset = AudioAsset(
             id = "asset-${updated.id}",
             recordingSessionId = updated.id,
             localPath = audioFile?.absolutePath,
+            mimeType = assetMimeType,
             durationMs = updated.durationMs,
             uploadState = AudioUploadState.Local
         )
@@ -227,11 +373,19 @@ class JournalViewModel(
 
         // Start upload
         uploadRetryCount = 0
+
+        _uiEvents.tryEmit(
+            UiEvent.Toast(
+                message = "Transcription started",
+                kind = PopupKind.Success,
+            )
+        )
         uploadAudioToBackend()
     }
 
     fun discardRecording() {
         audioRecorder?.stop()
+        stopBackendLiveTranscription(sendStop = true)
         stopTimer()
 
         // Delete audio file
@@ -243,6 +397,10 @@ class JournalViewModel(
             id = "",
             startedAtMillis = System.currentTimeMillis(),
         )
+
+        _liveTranscriptText.value = ""
+        _liveTranscriptError.value = null
+        _isLiveTranscribing.value = false
     }
 
     private fun uploadAudioToBackend() {
@@ -291,6 +449,17 @@ class JournalViewModel(
                     _uploadState.value = AudioUploadState.Failed
                     JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Failed)
                     _uploadError.value = exception.message ?: "Upload failed"
+
+                    _uiEvents.tryEmit(
+                        UiEvent.Modal(
+                            kind = PopupKind.Error,
+                            title = "Upload Interrupted",
+                            message = "We couldn't reach the sanctuary. Please check your connection and try again.",
+                            primaryLabel = "Try Again",
+                            secondaryLabel = "Dismiss",
+                            action = UiAction.RetryUpload,
+                        )
+                    )
                 }
             }
         }
@@ -454,6 +623,8 @@ class JournalViewModel(
         super.onCleared()
         audioRecorder?.stop()
         stopTimer()
+
+        stopBackendLiveTranscription(sendStop = true)
     }
 }
 

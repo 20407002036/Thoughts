@@ -2,8 +2,12 @@ package com.example.thoughts
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.thoughts.ui.events.UiEvent
+import com.example.thoughts.ui.popup.PopupKind
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -11,6 +15,9 @@ import kotlinx.coroutines.launch
 class AuthViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    private val _uiEvents = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
+    val uiEvents = _uiEvents.asSharedFlow()
 
     fun updateDisplayName(value: String) {
         _uiState.update { it.copy(displayName = value, errorMessage = null) }
@@ -105,8 +112,21 @@ class AuthViewModel : ViewModel() {
 
     fun logout() {
         viewModelScope.launch {
-            AuthRepository.logout(AuthSessionManager.session.value)
+            val currentSession = AuthSessionManager.session.value
             AuthSessionManager.clearSession()
+
+            val result = AuthRepository.logout(currentSession)
+            _uiEvents.tryEmit(
+                UiEvent.Toast(
+                    message = if (result.isSuccess) {
+                        "Signed out"
+                    } else {
+                        "Signed out locally; couldn't reach server"
+                    },
+                    kind = if (result.isSuccess) PopupKind.Success else PopupKind.Error,
+                )
+            )
+
             _uiState.update {
                 it.copy(
                     isLoading = false,
