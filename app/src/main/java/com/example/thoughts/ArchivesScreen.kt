@@ -120,7 +120,7 @@ fun ArchivesSearchField() {
         onValueChange = {},
         placeholder = {
             Text(
-                "Search entries",
+                "Search your reflections...",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
@@ -129,7 +129,7 @@ fun ArchivesSearchField() {
             Icon(
                 Icons.Default.Search,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(20.dp)
             )
         },
@@ -138,10 +138,10 @@ fun ArchivesSearchField() {
             .padding(vertical = 12.dp),
         shape = CircleShape,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-            unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
         ),
         singleLine = true
     )
@@ -159,10 +159,10 @@ fun ArchivesFilterChips() {
             shadowElevation = 4.dp
         ) {
             Text(
-                "All entries",
+                "All Entries",
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
 
@@ -171,10 +171,10 @@ fun ArchivesFilterChips() {
             shape = CircleShape
         ) {
             Text(
-                "By mood",
+                "This Week",
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -214,7 +214,7 @@ fun ArchiveEntryCard(entry: ArchiveEntrySummary, navController: NavHostControlle
             .padding(bottom = 12.dp)
             .clickable { navController.navigate(entryDetailRoute(entry.id)) },
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -238,14 +238,15 @@ fun ArchiveEntryCard(entry: ArchiveEntrySummary, navController: NavHostControlle
                 }
 
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                    shape = CircleShape
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    shape = CircleShape,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                 ) {
                     Text(
-                        entry.moodLabel ?: entry.status.ifBlank { "Entry" },
+                        entry.moodLabel?.uppercase() ?: entry.status.ifBlank { "ENTRY" },
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
