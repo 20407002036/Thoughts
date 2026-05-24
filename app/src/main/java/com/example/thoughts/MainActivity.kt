@@ -73,7 +73,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.thoughts.ui.theme.ThoughtsTheme
 import com.example.thoughts.ui.theme.ThoughtsColors
 
 class MainActivity : ComponentActivity() {
@@ -83,9 +82,7 @@ class MainActivity : ComponentActivity() {
         JournalRepository.initialize(applicationContext)
         enableEdgeToEdge()
         setContent {
-            ThoughtsTheme {
-                AppRoot()
-            }
+            AppRoot()
         }
     }
 }

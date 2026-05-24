@@ -11,8 +11,10 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
 import okhttp3.MultipartBody
@@ -57,6 +59,12 @@ interface JournalApiService {
     @retrofit2.http.GET("v1/preferences")
     suspend fun getPreferences(
         @Header("Authorization") authorization: String,
+    ): PreferencesResponse
+
+    @retrofit2.http.PATCH("v1/preferences")
+    suspend fun updatePreferences(
+        @Header("Authorization") authorization: String,
+        @retrofit2.http.Body request: UpdatePreferencesRequest,
     ): PreferencesResponse
 }
 
@@ -239,6 +247,29 @@ object BackendService {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get preferences", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updatePreferences(request: UpdatePreferencesRequest): Result<PreferencesResponse> {
+        return try {
+            val authorization = AuthSessionManager.authorizationHeader()
+                ?: throw IllegalStateException("User session not found")
+            Result.success(apiService.updatePreferences(authorization, request))
+        } catch (e: HttpException) {
+            if (e.code() == 401 && refreshSessionIfNeeded()) {
+                try {
+                    val authorization = AuthSessionManager.authorizationHeader()
+                        ?: throw IllegalStateException("User session not found")
+                    Result.success(apiService.updatePreferences(authorization, request))
+                } catch (retryError: Exception) {
+                    Result.failure(retryError)
+                }
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update preferences", e)
             Result.failure(e)
         }
     }
