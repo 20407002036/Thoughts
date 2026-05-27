@@ -209,6 +209,16 @@ class JournalViewModel(
         ).also { it.connect() }
     }
 
+    private fun getLastWords(text: String, wordCount: Int): String {
+        val words = text.trim().split("\\s+".toRegex())
+
+        return if (words.size <= wordCount) {
+            text
+        } else {
+            words.takeLast(wordCount).joinToString(" ")
+        }
+    }
+
     private fun stopBackendLiveTranscription(sendStop: Boolean) {
         val client = liveTranscriptionClient ?: return
         liveTranscriptionClient = null
@@ -252,7 +262,7 @@ class JournalViewModel(
         }.trim()
 
         if (combined.isNotBlank()) {
-            _liveTranscriptText.value = combined
+            _liveTranscriptText.value = getLastWords(combined, 6)
             maybePersistLiveTranscript(combined)
         }
 
