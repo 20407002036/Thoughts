@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
@@ -61,6 +64,32 @@ class JournalViewModel(
 
     private val _archivedEntries = MutableStateFlow<List<ArchiveEntrySummary>>(emptyList())
     val archivedEntries: StateFlow<List<ArchiveEntrySummary>> = _archivedEntries.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    val filteredEntries: StateFlow<List<ArchiveEntrySummary>> = combine(
+        _archivedEntries,
+        _searchQuery
+    ) { entries, query ->
+        if (query.isBlank()) {
+            entries
+        } else {
+            entries.filter { entry ->
+                entry.title.contains(query, ignoreCase = true) ||
+                entry.summary.contains(query, ignoreCase = true) ||
+                (entry.moodLabel?.contains(query, ignoreCase = true) == true)
+            }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
 
     private val _selectedEntry = MutableStateFlow<JournalEntry?>(null)
     val selectedEntry: StateFlow<JournalEntry?> = _selectedEntry.asStateFlow()

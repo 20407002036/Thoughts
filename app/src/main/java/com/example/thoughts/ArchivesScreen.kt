@@ -44,7 +44,8 @@ import androidx.navigation.NavHostController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArchivesScreen(navController: NavHostController, journalViewModel: JournalViewModel) {
-    val archivedEntries by journalViewModel.archivedEntries.collectAsState()
+    val archivedEntries by journalViewModel.filteredEntries.collectAsState()
+    val searchQuery by journalViewModel.searchQuery.collectAsState()
 
     LaunchedEffect(Unit) {
         journalViewModel.loadArchivedEntries()
@@ -69,7 +70,10 @@ fun ArchivesScreen(navController: NavHostController, journalViewModel: JournalVi
                 ArchivesHeader()
             }
             item {
-                ArchivesSearchField()
+                ArchivesSearchField(
+                    query = searchQuery,
+                    onQueryChange = { journalViewModel.updateSearchQuery(it) }
+                )
             }
             item {
                 ArchivesFilterChips()
@@ -82,7 +86,7 @@ fun ArchivesScreen(navController: NavHostController, journalViewModel: JournalVi
             } else {
                 item {
                     Text(
-                        "Recent entries",
+                        if (searchQuery.isEmpty()) "Recent entries" else "Search results",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
@@ -114,10 +118,10 @@ fun ArchivesHeader() {
 }
 
 @Composable
-fun ArchivesSearchField() {
+fun ArchivesSearchField(query: String, onQueryChange: (String) -> Unit) {
     OutlinedTextField(
-        value = "",
-        onValueChange = {},
+        value = query,
+        onValueChange = onQueryChange,
         placeholder = {
             Text(
                 "Search entries",
