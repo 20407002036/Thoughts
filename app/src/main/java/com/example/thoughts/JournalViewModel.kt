@@ -5,11 +5,19 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.example.thoughts.ui.events.UiAction
+import com.example.thoughts.ui.events.UiEvent
+import com.example.thoughts.ui.popup.PopupKind
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
@@ -36,10 +44,13 @@ class JournalViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
-    private val _currentDraft = MutableStateFlow(readDraftFromState())
+    private val _uiEvents = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
+    val uiEvents = _uiEvents.asSharedFlow()
+
+    private val _currentDraft = MutableStateFlow<JournalEntryDraft?>(null)
     val currentDraft: StateFlow<JournalEntryDraft?> = _currentDraft.asStateFlow()
 
-    private val _recordingSession = MutableStateFlow(readRecordingSessionFromState())
+    private val _recordingSession = MutableStateFlow(RecordingSession(id = "", startedAtMillis = System.currentTimeMillis()))
     val recordingSession: StateFlow<RecordingSession> = _recordingSession.asStateFlow()
 
     private val _uploadState = MutableStateFlow(AudioUploadState.Local)
@@ -51,36 +62,110 @@ class JournalViewModel(
     private val _backendResult = MutableStateFlow<IngestionResponse?>(null)
     val backendResult: StateFlow<IngestionResponse?> = _backendResult.asStateFlow()
 
+    private val _archivedEntries = MutableStateFlow<List<ArchiveEntrySummary>>(emptyList())
+    val archivedEntries: StateFlow<List<ArchiveEntrySummary>> = _archivedEntries.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    val filteredEntries: StateFlow<List<ArchiveEntrySummary>> = combine(
+        _archivedEntries,
+        _searchQuery
+    ) { entries, query ->
+        if (query.isBlank()) {
+            entries
+        } else {
+            entries.filter { entry ->
+                entry.title.contains(query, ignoreCase = true) ||
+                entry.summary.contains(query, ignoreCase = true) ||
+                (entry.moodLabel?.contains(query, ignoreCase = true) == true)
+            }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
     private val _selectedEntry = MutableStateFlow<JournalEntry?>(null)
     val selectedEntry: StateFlow<JournalEntry?> = _selectedEntry.asStateFlow()
+
+    private val _userProfile = MutableStateFlow<ProfileResponse?>(null)
+    val userProfile: StateFlow<ProfileResponse?> = _userProfile.asStateFlow()
+
+    private val _dashboard = MutableStateFlow<DashboardResponse?>(null)
+    val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
+
+    init {
+        // Dashboard
+        viewModelScope.launch {
+            JournalRepository.getDashboardFlow().collect {
+                _dashboard.value = it
+            }
+        }
+        // Drafts
+        viewModelScope.launch {
+            val latest = JournalRepository.getLatestDraft()
+            if (latest != null) {
+                _currentDraft.value = latest
+            }
+        }
+        // Profile
+        viewModelScope.launch {
+            JournalRepository.getProfileFlow().collect { profile ->
+                if (profile != null) {
+                    _userProfile.value = profile
+                }
+            }
+        }
+    }
+
+    private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
+    val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
 
     private var timerJob: Job? = null
     private var audioFile: File? = null
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
 
-    private val _archivedEntries = MutableStateFlow<List<ArchiveEntrySummary>>(emptyList())
-    val archivedEntries: StateFlow<List<ArchiveEntrySummary>> = _archivedEntries.asStateFlow()
+    // --- Backend live transcription (WebSocket, PCM streaming) ---
+    private var liveTranscriptionClient: LiveTranscriptionWebSocketClient? = null
+    private var liveTranscriptFinalText: String = ""
+    private var liveTranscriptPartialText: String = ""
 
-    private val _userProfile = MutableStateFlow<ProfileResponse?>(null)
-    val userProfile: StateFlow<ProfileResponse?> = _userProfile.asStateFlow()
+    private val _liveTranscriptText = MutableStateFlow("")
+    val liveTranscriptText: StateFlow<String> = _liveTranscriptText.asStateFlow()
 
-    private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
-    val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
+    private val _liveTranscriptError = MutableStateFlow<String?>(null)
+    val liveTranscriptError: StateFlow<String?> = _liveTranscriptError.asStateFlow()
 
-    private val _dashboard = MutableStateFlow<DashboardResponse?>(null)
-    val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
+    private val _isLiveTranscribing = MutableStateFlow(false)
+    val isLiveTranscribing: StateFlow<Boolean> = _isLiveTranscribing.asStateFlow()
+
+    private var lastLiveTranscriptPersistedAtMillis: Long = 0L
+    private var lastLiveTranscriptPersistedText: String = ""
 
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
-        persistDraft(draft)
+        viewModelScope.launch {
+            JournalRepository.saveDraft(draft)
+        }
     }
 
     fun ensureDraftInitialized() {
         if (_currentDraft.value == null) {
             val now = System.currentTimeMillis()
-            saveDraft(createDefaultDraft(now))
+            val draft = createDefaultDraft(now)
+            saveDraft(draft)
         }
+    }
+
+    private fun currentDraftOrDefault(): JournalEntryDraft {
+        return _currentDraft.value ?: createDefaultDraft(System.currentTimeMillis())
     }
 
     fun beginRecording() {
@@ -96,14 +181,134 @@ class JournalViewModel(
         persistRecordingSession(session)
         ensureDraftInitialized()
 
+        _liveTranscriptText.value = ""
+        _liveTranscriptError.value = null
+        _isLiveTranscribing.value = false
+        liveTranscriptFinalText = ""
+        liveTranscriptPartialText = ""
+        lastLiveTranscriptPersistedAtMillis = 0L
+        lastLiveTranscriptPersistedText = ""
+
+        startBackendLiveTranscription()
+
         // Create audio file and start recording
         audioFile = AudioFileManager.createAudioFile(getApplication())
-        audioRecorder = AudioRecorder(getApplication()).apply {
+        audioRecorder = AudioRecorder(
+            context = getApplication(),
+            onPcmChunk = { bytes, length ->
+                liveTranscriptionClient?.sendPcm(bytes, length)
+            },
+        ).apply {
             start(audioFile!!)
         }
         Log.d(TAG, "Started recording to: ${audioFile?.absolutePath}")
 
         startTimer()
+    }
+
+    private fun startBackendLiveTranscription() {
+        if (liveTranscriptionClient != null) return
+
+        val url = try {
+            ThoughtsApi.liveTranscribeWebSocketUrl()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to build live transcription WS URL", e)
+            _liveTranscriptError.value = "Live transcription unavailable"
+            return
+        }
+
+        val authorization = AuthSessionManager.authorizationHeader()
+
+        liveTranscriptionClient = LiveTranscriptionWebSocketClient(
+            url = url,
+            authorizationHeader = authorization,
+            onOpen = {
+                _isLiveTranscribing.value = true
+            },
+            onMessage = { message ->
+                handleBackendLiveTranscriptionMessage(message)
+            },
+            onFailure = { throwable ->
+                _isLiveTranscribing.value = false
+                _liveTranscriptError.value = throwable.message ?: "Live transcription unavailable"
+            },
+            onClosed = {
+                _isLiveTranscribing.value = false
+            },
+        ).also { it.connect() }
+    }
+
+    private fun getLastWords(text: String, wordCount: Int): String {
+        val words = text.trim().split("\\s+".toRegex())
+
+        return if (words.size <= wordCount) {
+            text
+        } else {
+            words.takeLast(wordCount).joinToString(" ")
+        }
+    }
+
+    private fun stopBackendLiveTranscription(sendStop: Boolean) {
+        val client = liveTranscriptionClient ?: return
+        liveTranscriptionClient = null
+
+        if (sendStop) {
+            try {
+                client.stop()
+            } finally {
+                client.close(reason = "stop")
+            }
+        } else {
+            client.close(reason = "close")
+        }
+
+        _isLiveTranscribing.value = false
+    }
+
+    private fun handleBackendLiveTranscriptionMessage(message: LiveTranscriptionMessage) {
+        if (!message.error.isNullOrBlank()) {
+            _liveTranscriptError.value = message.error
+        }
+
+        if (!message.finalText.isNullOrBlank()) {
+            liveTranscriptFinalText = listOf(liveTranscriptFinalText, message.finalText)
+                .filter { it.isNotBlank() }
+                .joinToString(" ")
+                .trim()
+            liveTranscriptPartialText = ""
+        }
+
+        if (!message.partial.isNullOrBlank()) {
+            liveTranscriptPartialText = message.partial
+        }
+
+        val combined = buildString {
+            if (liveTranscriptFinalText.isNotBlank()) append(liveTranscriptFinalText)
+            if (liveTranscriptPartialText.isNotBlank()) {
+                if (isNotBlank()) append(' ')
+                append(liveTranscriptPartialText)
+            }
+        }.trim()
+
+        if (combined.isNotBlank()) {
+            _liveTranscriptText.value = getLastWords(combined, 6)
+            maybePersistLiveTranscript(combined)
+        }
+
+        if (message.sessionEnded == true) {
+            stopBackendLiveTranscription(sendStop = false)
+        }
+    }
+
+    private fun maybePersistLiveTranscript(text: String) {
+        val now = System.currentTimeMillis()
+        val shouldPersist = text != lastLiveTranscriptPersistedText &&
+            (now - lastLiveTranscriptPersistedAtMillis) >= 1000L
+        if (shouldPersist) {
+            lastLiveTranscriptPersistedAtMillis = now
+            lastLiveTranscriptPersistedText = text
+            updateTranscriptText(text)
+        }
     }
 
     private fun startTimer() {
@@ -140,6 +345,7 @@ class JournalViewModel(
             }
             RecordingStatus.Finished -> {
                 audioRecorder?.stop()
+                stopBackendLiveTranscription(sendStop = true)
                 stopTimer()
                 current.copy(
                     status = status,
@@ -149,15 +355,18 @@ class JournalViewModel(
             }
             RecordingStatus.Discarded -> {
                 audioRecorder?.stop()
+                stopBackendLiveTranscription(sendStop = true)
                 stopTimer()
                 current.copy(status = status, endedAtMillis = now)
             }
             RecordingStatus.Error -> {
                 audioRecorder?.stop()
+                stopBackendLiveTranscription(sendStop = true)
                 current.copy(status = status)
             }
             RecordingStatus.Idle -> {
                 audioRecorder?.stop()
+                stopBackendLiveTranscription(sendStop = true)
                 current.copy(status = status)
             }
         }
@@ -167,24 +376,55 @@ class JournalViewModel(
 
     fun finishRecordingAndUpload() {
         audioRecorder?.stop()
+        stopBackendLiveTranscription(sendStop = true)
         stopTimer()
 
         val now = System.currentTimeMillis()
-        val updated = _recordingSession.value.copy(
+        val session = _recordingSession.value
+        val updated = session.copy(
             status = RecordingStatus.Finished,
             endedAtMillis = now,
-            durationMs = now - _recordingSession.value.startedAtMillis,
+            durationMs = now - session.startedAtMillis,
         )
         _recordingSession.value = updated
         persistRecordingSession(updated)
 
+        // Save AudioAsset metadata for tracking
+        val assetMimeType = when (audioFile?.extension?.lowercase()) {
+            "wav" -> "audio/wav"
+            "m4a" -> "audio/m4a"
+            else -> "application/octet-stream"
+        }
+        val asset = AudioAsset(
+            id = "asset-${updated.id}",
+            recordingSessionId = updated.id,
+            localPath = audioFile?.absolutePath,
+            mimeType = assetMimeType,
+            durationMs = updated.durationMs,
+            uploadState = AudioUploadState.Local
+        )
+        viewModelScope.launch {
+            JournalRepository.saveAudioAsset(asset)
+            // Link asset to draft
+            val currentDraft = currentDraftOrDefault()
+            saveDraft(currentDraft.copy(audioAsset = asset))
+        }
+
         // Start upload
         uploadRetryCount = 0
+
+        _uiEvents.tryEmit(
+            UiEvent.Toast(
+                message = "Transcription started",
+                kind = PopupKind.Success,
+            )
+        )
         uploadAudioToBackend()
     }
 
     fun discardRecording() {
         audioRecorder?.stop()
+        stopBackendLiveTranscription(sendStop = true)
         stopTimer()
 
         // Delete audio file
@@ -196,6 +436,10 @@ class JournalViewModel(
             id = "",
             startedAtMillis = System.currentTimeMillis(),
         )
+
+        _liveTranscriptText.value = ""
+        _liveTranscriptError.value = null
+        _isLiveTranscribing.value = false
     }
 
     private fun uploadAudioToBackend() {
@@ -206,8 +450,13 @@ class JournalViewModel(
             return
         }
 
+        val assetId = "asset-${_recordingSession.value.id}"
         _uploadState.value = AudioUploadState.Uploading
         _uploadError.value = null
+
+        viewModelScope.launch {
+            JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Uploading)
+        }
 
         viewModelScope.launch {
             val durationMs = _recordingSession.value.durationMs
@@ -220,14 +469,10 @@ class JournalViewModel(
             )
 
             result.onSuccess { response ->
-                Log.d(TAG, "Upload successful: entry=${response.id}")
+                Log.d(TAG, "Upload successful: ${response.transcript.take(100)}")
                 _uploadState.value = AudioUploadState.Processing
-                val entryId = response.id
-                if (!entryId.isNullOrBlank()) {
-                    loadEntryFromBackend(entryId, response)
-                } else {
-                    processingFailed("Upload completed but the backend did not return an entry id.")
-                }
+                JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Processing)
+                processingComplete(response)
             }
 
             result.onFailure { exception ->
@@ -241,7 +486,19 @@ class JournalViewModel(
                     uploadAudioToBackend()
                 } else {
                     _uploadState.value = AudioUploadState.Failed
+                    JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Failed)
                     _uploadError.value = exception.message ?: "Upload failed"
+
+                    _uiEvents.tryEmit(
+                        UiEvent.Modal(
+                            kind = PopupKind.Error,
+                            title = "Upload Interrupted",
+                            message = "We couldn't reach the sanctuary. Please check your connection and try again.",
+                            primaryLabel = "Try Again",
+                            secondaryLabel = "Dismiss",
+                            action = UiAction.RetryUpload,
+                        )
+                    )
                 }
             }
         }
@@ -252,143 +509,83 @@ class JournalViewModel(
         uploadAudioToBackend()
     }
 
-    fun loadEntry(entryId: String) {
-        viewModelScope.launch {
-            BackendService.fetchEntry(entryId)
-                .onSuccess { entry ->
-                    _selectedEntry.value = entry
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to load entry $entryId", throwable)
-                    _selectedEntry.value = null
-                }
-        }
-    }
-
     fun loadArchivedEntries() {
         viewModelScope.launch {
-            BackendService.fetchArchivedEntries()
-                .onSuccess { entries ->
-                    _archivedEntries.value = entries
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to load archive entries", throwable)
-                    _archivedEntries.value = emptyList()
-                }
+            JournalRepository.refreshEntries()
+            JournalRepository.getEntries().collect { entries ->
+                _archivedEntries.value = entries.map { it.toArchiveEntrySummary() }
+            }
         }
     }
 
-    fun listArchivedEntries(): List<ArchiveEntrySummary> = archivedEntries.value
+    fun listArchivedEntries(): List<ArchiveEntrySummary> {
+        return _archivedEntries.value
+    }
+
+    fun loadEntry(id: String) {
+        viewModelScope.launch {
+            val result = JournalRepository.getEntry(id)
+            result.onSuccess { entry ->
+                _selectedEntry.value = entry
+            }
+            result.onFailure { error ->
+                Log.e(TAG, "Failed to load entry: $id", error)
+                _selectedEntry.value = null
+            }
+        }
+    }
 
     fun loadProfile() {
         viewModelScope.launch {
-            BackendService.fetchProfile()
-                .onSuccess { profile ->
-                    _userProfile.value = profile
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to fetch profile", throwable)
-                    _uploadError.value = throwable.message ?: "Could not load profile."
-                }
-        }
-    }
-
-    fun saveProfile(profile: ProfileResponse) {
-        viewModelScope.launch {
-            BackendService.updateProfile(profile)
-                .onSuccess { updatedProfile ->
-                    _userProfile.value = updatedProfile
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to update profile", throwable)
-                    _uploadError.value = throwable.message ?: "Could not save profile."
-                }
-        }
-    }
-
-    fun loadPreferences() {
-        viewModelScope.launch {
-            BackendService.fetchPreferences()
-                .onSuccess { prefs ->
-                    _userPreferences.value = prefs
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to fetch preferences", throwable)
-                    _uploadError.value = throwable.message ?: "Could not load preferences."
-                }
-        }
-    }
-
-    fun savePreferences(prefs: PreferencesResponse) {
-        viewModelScope.launch {
-            BackendService.updatePreferences(prefs)
-                .onSuccess { updatedPrefs ->
-                    _userPreferences.value = updatedPrefs
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to update preferences", throwable)
-                    _uploadError.value = throwable.message ?: "Could not save preferences."
-                }
+            JournalRepository.refreshProfile()
         }
     }
 
     fun loadDashboard() {
         viewModelScope.launch {
-            BackendService.fetchDashboard()
-                .onSuccess { dashboard ->
-                    _dashboard.value = dashboard
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to fetch dashboard", throwable)
-                    _uploadError.value = throwable.message ?: "Could not load dashboard."
-                }
+            JournalRepository.refreshDashboard()
         }
     }
 
-    private fun loadEntryFromBackend(entryId: String, response: IngestionResponse) {
+    fun loadPreferences() {
         viewModelScope.launch {
-            BackendService.fetchEntry(entryId)
-                .onSuccess { entry ->
-                    _backendResult.value = IngestionResponse(
-                        id = entry.id,
-                        transcript = entry.transcript.fullText,
-                        analysis = IngestionAnalysis(
-                            mood = entry.moodAnalysis?.label,
-                            summary = entry.moodAnalysis?.explanation,
-                            themes = entry.tags.map { it.name },
-                        ),
-                        audioSignedUrl = entry.audioAsset?.remoteUrl,
-                        createdAt = java.time.Instant.ofEpochMilli(entry.createdAtMillis).toString(),
-                    )
-                    _selectedEntry.value = entry
-
-                    val updatedDraft = JournalEntryDraft(
-                        id = entry.id,
-                        recordingSessionId = entry.recordingSessionId,
-                        title = entry.title,
-                        transcriptText = entry.transcript.fullText,
-                        audioAsset = entry.audioAsset,
-                        tags = entry.tags,
-                        moodAnalysis = entry.moodAnalysis,
-                        takeaway = entry.takeaway,
-                        updatedAtMillis = System.currentTimeMillis(),
-                    )
-                    saveDraft(updatedDraft)
-
-                    _uploadState.value = AudioUploadState.Uploaded
-                    audioFile?.let { AudioFileManager.deleteAudioFile(it) }
-                    audioFile = null
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Failed to load uploaded entry $entryId", throwable)
-                    processingFailed(throwable.message ?: "Could not load the uploaded journal entry.")
-                }
+            JournalRepository.refreshPreferences()
+            JournalRepository.getPreferencesFlow().collect { _userPreferences.value = it }
         }
     }
 
-    private fun processingFailed(message: String) {
-        _uploadState.value = AudioUploadState.Failed
-        _uploadError.value = message
+    private fun processingComplete(response: IngestionResponse) {
+        _backendResult.value = response
+        _uploadState.value = AudioUploadState.Uploaded
+
+        val assetId = "asset-${_recordingSession.value.id}"
+        viewModelScope.launch {
+            JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Uploaded)
+        }
+
+        // Update draft with backend results
+        val tags = response.tags.map { JournalTag(it, TagSource.Generated) }
+        val moodLabel = response.moodLabel
+        val mood = if (moodLabel != null) {
+            MoodAnalysis(
+                label = moodLabel,
+                score = response.moodScore ?: 0f,
+                confidence = response.moodConfidence,
+                explanation = response.moodExplanation,
+            )
+        } else null
+
+        val updatedDraft = currentDraftOrDefault().copy(
+            transcriptText = response.transcript,
+            tags = tags,
+            moodAnalysis = mood,
+            updatedAtMillis = System.currentTimeMillis(),
+        )
+        saveDraft(updatedDraft)
+
+        // Cleanup audio file after successful upload
+        audioFile?.let { AudioFileManager.deleteAudioFile(it) }
+        audioFile = null
     }
 
     fun updateTranscriptText(text: String) {
@@ -416,17 +613,14 @@ class JournalViewModel(
     }
 
     fun clearDraft() {
+        val currentId = _currentDraft.value?.id
         _currentDraft.value = null
-        savedStateHandle.remove<String>(DraftIdKey)
-        savedStateHandle.remove<String>(RecordingSessionIdKey)
-        savedStateHandle.remove<String>(TitleKey)
-        savedStateHandle.remove<String>(TranscriptTextKey)
-        savedStateHandle.remove<String>(TagsKey)
-        savedStateHandle.remove<String>(MoodLabelKey)
-        savedStateHandle.remove<Float>(MoodScoreKey)
-        savedStateHandle.remove<String>(MoodExplanationKey)
-        savedStateHandle.remove<String>(TakeawayKey)
-        savedStateHandle.remove<Long>(UpdatedAtKey)
+        if (currentId != null) {
+            viewModelScope.launch {
+                JournalRepository.deleteDraft(currentId)
+            }
+        }
+
         _recordingSession.value = RecordingSession(
             id = "",
             startedAtMillis = System.currentTimeMillis(),
@@ -438,58 +632,13 @@ class JournalViewModel(
         savedStateHandle.remove<String>(RecordingStatusKey)
     }
 
-    private fun readDraftFromState(): JournalEntryDraft? {
-        val draftId = savedStateHandle.get<String>(DraftIdKey) ?: return null
-        val recordingSessionId = savedStateHandle.get<String>(RecordingSessionIdKey) ?: return null
-        val transcriptText = savedStateHandle.get<String>(TranscriptTextKey) ?: return null
-        val updatedAtMillis = savedStateHandle.get<Long>(UpdatedAtKey) ?: System.currentTimeMillis()
-        val tags = savedStateHandle.get<String>(TagsKey)
-            ?.split("|")
-            ?.filter { it.isNotBlank() }
-            ?.map { JournalTag(name = it) }
-            ?: emptyList()
-        val moodLabel = savedStateHandle.get<String>(MoodLabelKey)
-        val moodScore = savedStateHandle.get<Float>(MoodScoreKey)
-        val moodExplanation = savedStateHandle.get<String>(MoodExplanationKey)
-
-        return JournalEntryDraft(
-            id = draftId,
-            recordingSessionId = recordingSessionId,
-            title = savedStateHandle.get<String>(TitleKey),
-            transcriptText = transcriptText,
-            tags = tags,
-            moodAnalysis = moodLabel?.let {
-                MoodAnalysis(
-                    label = it,
-                    score = moodScore ?: 0f,
-                    explanation = moodExplanation,
-                )
-            },
-            takeaway = savedStateHandle.get<String>(TakeawayKey),
-            updatedAtMillis = updatedAtMillis,
-        )
-    }
-
-    private fun persistDraft(draft: JournalEntryDraft) {
-        savedStateHandle[DraftIdKey] = draft.id
-        savedStateHandle[RecordingSessionIdKey] = draft.recordingSessionId
-        savedStateHandle[TitleKey] = draft.title
-        savedStateHandle[TranscriptTextKey] = draft.transcriptText
-        savedStateHandle[TagsKey] = draft.tags.joinToString("|") { it.name }
-        savedStateHandle[MoodLabelKey] = draft.moodAnalysis?.label
-        savedStateHandle[MoodScoreKey] = draft.moodAnalysis?.score
-        savedStateHandle[MoodExplanationKey] = draft.moodAnalysis?.explanation
-        savedStateHandle[TakeawayKey] = draft.takeaway
-        savedStateHandle[UpdatedAtKey] = draft.updatedAtMillis
-    }
-
     private fun readRecordingSessionFromState(): RecordingSession {
         val id = savedStateHandle.get<String>(RecordingIdKey) ?: ""
         val startedAtMillis = savedStateHandle.get<Long>(RecordingStartedAtKey) ?: System.currentTimeMillis()
         val endedAtMillis = savedStateHandle.get<Long>(RecordingEndedAtKey)
         val durationMs = savedStateHandle.get<Long>(RecordingDurationKey) ?: 0L
         val status = savedStateHandle.get<String>(RecordingStatusKey)
-            ?.let { runCatching { RecordingStatus.valueOf(it) }.getOrNull() }
+            ?.let { RecordingStatus.fromString(it) }
             ?: RecordingStatus.Idle
 
         return RecordingSession(
@@ -513,6 +662,8 @@ class JournalViewModel(
         super.onCleared()
         audioRecorder?.stop()
         stopTimer()
+
+        stopBackendLiveTranscription(sendStop = true)
     }
 }
 
@@ -528,15 +679,6 @@ fun createDefaultDraft(now: Long): JournalEntryDraft {
         moodAnalysis = null,
         takeaway = null,
         updatedAtMillis = now,
-    )
-}
-
-fun currentDraftOrDefault(): JournalEntryDraft {
-    return JournalEntryDraft(
-        id = "",
-        recordingSessionId = "",
-        transcriptText = "",
-        updatedAtMillis = System.currentTimeMillis(),
     )
 }
 

@@ -9,7 +9,13 @@ enum class RecordingStatus {
     Paused,
     Finished,
     Discarded,
-    Error,
+    Error;
+
+    companion object {
+        fun fromString(value: String): RecordingStatus {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Idle
+        }
+    }
 }
 
 @Serializable
@@ -18,7 +24,13 @@ enum class AudioUploadState {
     Uploading,
     Processing,
     Uploaded,
-    Failed,
+    Failed;
+
+    companion object {
+        fun fromString(value: String): AudioUploadState {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Local
+        }
+    }
 }
 
 @Serializable
@@ -27,6 +39,13 @@ enum class JournalEntryStatus {
     Ready,
     Saved,
     Uploaded,
+    Completed;
+
+    companion object {
+        fun fromString(value: String): JournalEntryStatus {
+            return entries.find { it.name.equals(value, ignoreCase = true) } ?: Draft
+        }
+    }
 }
 
 @Serializable
@@ -68,7 +87,7 @@ data class AudioAsset(
     val recordingSessionId: String,
     val localPath: String? = null,
     val remoteUrl: String? = null,
-    val mimeType: String = "audio/m4a",
+    val mimeType: String = "audio/wav",
     val durationMs: Long = 0L,
     val sizeBytes: Long? = null,
     val uploadState: AudioUploadState = AudioUploadState.Local,
@@ -181,6 +200,8 @@ data class IngestionResponse(
     val analysis: IngestionAnalysis? = null,
     @SerialName("audio_path")
     val audioPath: String? = null,
+    @SerialName("audio_url")
+    val audioUrl: String? = null,
     @SerialName("audio_signed_url")
     val audioSignedUrl: String? = null,
     @SerialName("prompt_version")
@@ -205,7 +226,7 @@ data class IngestionResponse(
         get() = analysis?.themes ?: emptyList()
 
     val audioRemoteUrl: String?
-        get() = audioSignedUrl
+        get() = audioSignedUrl ?: audioUrl
 
     val processingDurationMs: Long?
         get() = null
@@ -339,7 +360,18 @@ fun JournalEntrySummaryResponse.toArchiveEntrySummary(): ArchiveEntrySummary {
     )
 }
 
-private fun parseIso8601ToMillis(value: String): Long {
+fun JournalEntry.toArchiveEntrySummary(): ArchiveEntrySummary {
+    return ArchiveEntrySummary(
+        id = id,
+        title = title.orEmpty().ifBlank { "Journal entry" },
+        createdAtMillis = createdAtMillis,
+        summary = takeaway.orEmpty(),
+        status = status.name,
+        moodLabel = moodAnalysis?.label
+    )
+}
+
+internal fun parseIso8601ToMillis(value: String): Long {
     return runCatching {
         java.time.Instant.parse(value).toEpochMilli()
     }.getOrElse {
@@ -383,9 +415,11 @@ fun JournalEntry.toUploadRequest() = EntryUploadRequest(
 
 @Serializable
 data class ProfileResponse(
-    val user_id: String,
-    val email: String,
-    val full_name: String,
+    val user_id: String? = null,
+    val email: String? = null,
+    val full_name: String? = null,
+    val display_name: String? = null,
+    val name: String? = null,
     val avatar_url: String? = null,
     val bio: String? = null,
     val streak_count: Int = 0,
@@ -393,14 +427,18 @@ data class ProfileResponse(
     val updated_at: String? = null,
 ) {
     // Compatibility accessors
-    val display_name: String get() = full_name
+    val display_name_compat: String? 
+        get() = full_name?.takeIf { it.isNotBlank() } 
+            ?: display_name?.takeIf { it.isNotBlank() } 
+            ?: name?.takeIf { it.isNotBlank() }
+            
     val tagline: String? get() = bio
     val initials: String?
         get() = runCatching {
-            full_name.split(" ")
-                .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
-                .take(2)
-                .joinToString("")
+            display_name_compat?.split(" ")
+                ?.mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+                ?.take(2)
+                ?.joinToString("")
         }.getOrNull()
 
     // Backwards-compatible default fields used by the Android app UI
@@ -424,6 +462,15 @@ data class PreferencesResponse(
     // Backwards-compatible audio quality used by UI
     val audio_quality: String get() = "high"
 }
+
+@Serializable
+data class UpdatePreferencesRequest(
+    val appearance_mode: String? = null,
+    val notifications_enabled: Boolean? = null,
+    val prompt_reminder_time: String? = null,
+    val audio_quality: String? = null,
+    val language: String? = null
+)
 
 @Serializable
 data class DashboardResponse(

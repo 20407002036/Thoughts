@@ -1,6 +1,7 @@
 package com.example.thoughts
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class AuthLoginRequest(
@@ -12,11 +13,13 @@ data class AuthLoginRequest(
 data class AuthSignUpRequest(
     val email: String,
     val password: String,
-    val displayName: String? = null,
+    @SerialName("full_name")
+    val displayName: String,
 )
 
 @Serializable
 data class AuthRefreshRequest(
+    @SerialName("refresh_token")
     val refreshToken: String,
 )
 

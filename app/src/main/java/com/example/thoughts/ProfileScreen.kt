@@ -84,7 +84,7 @@ fun ProfileScreen(navController: NavHostController, journalViewModel: JournalVie
                 } else {
                     val p = profile!!
                     val displayInitial = p.initials?.firstOrNull()?.uppercaseChar()?.toString()
-                        ?: p.display_name.firstOrNull()?.uppercaseChar()?.toString()
+                        ?: p.display_name_compat?.firstOrNull()?.uppercaseChar()?.toString()
                         ?: "?"
                     
                     Column(
@@ -107,11 +107,11 @@ fun ProfileScreen(navController: NavHostController, journalViewModel: JournalVie
                             )
                         }
                         Text(
-                            p.display_name,
+                            p.display_name_compat ?: "User",
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            p.email,
+                            p.email ?: "No email provided",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
