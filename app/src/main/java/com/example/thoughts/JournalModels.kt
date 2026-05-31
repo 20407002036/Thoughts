@@ -2,6 +2,43 @@ package com.example.thoughts
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
+
+object EntryTranscriptResponseSerializer : KSerializer<EntryTranscriptResponse> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("EntryTranscriptResponse", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): EntryTranscriptResponse {
+        val jsonDecoder = decoder as? JsonDecoder ?: error("EntryTranscriptResponseSerializer only works with JSON")
+        val element = jsonDecoder.decodeJsonElement()
+
+        return when (element) {
+            is JsonPrimitive -> EntryTranscriptResponse(fullText = element.content)
+            is JsonObject -> {
+                val fullText = element["full_text"]?.jsonPrimitive?.content
+                    ?: element["fullText"]?.jsonPrimitive?.content
+                    ?: element["transcript"]?.jsonPrimitive?.content
+                    ?: ""
+                EntryTranscriptResponse(fullText = fullText)
+            }
+            else -> EntryTranscriptResponse(fullText = "")
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: EntryTranscriptResponse) {
+        val jsonEncoder = encoder as? JsonEncoder ?: error("EntryTranscriptResponseSerializer only works with JSON")
+        jsonEncoder.encodeJsonElement(JsonObject(mapOf("full_text" to JsonPrimitive(value.fullText))))
+    }
+}
 @Serializable
 enum class RecordingStatus {
     Idle,
@@ -256,7 +293,9 @@ data class EntryTranscriptResponse(
 
 @Serializable
 data class EntryTagResponse(
-    val name: String,
+    val name: String? = null,
+    @SerialName("label")
+    val label: String? = null,
     val source: String? = null,
 )
 
@@ -272,12 +311,13 @@ data class EntryMoodAnalysisResponse(
 data class JournalEntryResponse(
     val id: String,
     @SerialName("recording_session_id")
-    val recordingSessionId: String,
+    val recordingSessionId: String? = null,
     val title: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("recorded_at")
     val recordedAt: String? = null,
+    @Serializable(with = EntryTranscriptResponseSerializer::class)
     val transcript: EntryTranscriptResponse? = null,
     val tags: List<EntryTagResponse> = emptyList(),
     @SerialName("mood_analysis")
@@ -285,6 +325,10 @@ data class JournalEntryResponse(
     val takeaway: String? = null,
     val summary: String? = null,
     val highlights: List<String> = emptyList(),
+    @SerialName("audio_url")
+    val audioUrl: String? = null,
+    @SerialName("audio_signed_url")
+    val audioSignedUrl: String? = null,
 )
 
 @Serializable
@@ -299,6 +343,8 @@ data class JournalEntrySummaryResponse(
     val status: String? = null,
     @SerialName("mood_label")
     val moodLabel: String? = null,
+    @SerialName("audio_url")
+    val audioUrl: String? = null,
 )
 
 @Serializable
@@ -321,19 +367,28 @@ data class ArchiveEntrySummary(
 fun JournalEntryResponse.toJournalEntry(): JournalEntry {
     val createdAtMillis = createdAt?.let { parseIso8601ToMillis(it) } ?: System.currentTimeMillis()
     val recordedAtMillis = recordedAt?.let { parseIso8601ToMillis(it) } ?: createdAtMillis
+    val transcriptRecordingSessionId = recordingSessionId ?: "unknown"
 
     return JournalEntry(
         id = id,
-        recordingSessionId = recordingSessionId,
+        recordingSessionId = transcriptRecordingSessionId,
         title = title,
         createdAtMillis = createdAtMillis,
         recordedAtMillis = recordedAtMillis,
         transcript = Transcript(
             id = "transcript-$id",
-            recordingSessionId = recordingSessionId,
+            recordingSessionId = transcriptRecordingSessionId,
             fullText = transcript?.fullText.orEmpty(),
         ),
-        tags = tags.map { JournalTag(name = it.name) },
+        tags = tags.map { JournalTag(name = it.name ?: it.label.orEmpty()) },
+        audioAsset = (audioSignedUrl ?: audioUrl)?.let { url ->
+            AudioAsset(
+                id = "asset-$id",
+                recordingSessionId = transcriptRecordingSessionId,
+                remoteUrl = url,
+                uploadState = AudioUploadState.Uploaded
+            )
+        },
         moodAnalysis = moodAnalysis?.let {
             val label = it.label ?: "Reflection"
             MoodAnalysis(
