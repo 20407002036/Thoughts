@@ -26,3 +26,14 @@ data class ModalPopup(
     val primary: PopupButton,
     val secondary: PopupButton? = null,
 )
+
+data class SelectionOption(
+    val label: String,
+    val onClick: () -> Unit,
+    val isSelected: Boolean = false,
+)
+
+data class SelectionPopup(
+    val title: String,
+    val options: List<SelectionOption>,
+)

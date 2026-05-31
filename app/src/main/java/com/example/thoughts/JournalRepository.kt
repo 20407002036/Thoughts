@@ -159,4 +159,24 @@ object JournalRepository {
             prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), prefs))
         }
     }
+
+    suspend fun savePreferences(prefs: PreferencesResponse) {
+        // Prepare patch request
+        val request = UpdatePreferencesRequest(
+            appearance_mode = prefs.theme,
+            notifications_enabled = prefs.notifications_enabled,
+            prompt_reminder_time = prefs.reminder_time,
+            language = prefs.language
+        )
+
+        // Sync to backend first
+        BackendService.updatePreferences(request).onSuccess { updated ->
+            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), updated))
+        }.onFailure {
+            // Even if backend fails, we save locally for offline-first feel
+            // but log the error
+            Log.e(TAG, "Failed to sync preferences to backend", it)
+            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), prefs))
+        }
+    }
 }

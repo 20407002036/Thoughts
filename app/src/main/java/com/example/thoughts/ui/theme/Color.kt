@@ -32,6 +32,16 @@ val OnSurfaceVariant = Color(0xFF64655C)
 val Outline = Color(0xFF7B7B71)
 val OutlineVariant = Color(0xFFC9C8BC)
 
+// Mindful Dark Theme Colors
+val DarkBackground = Color(0xFF121110)
+val DarkSurface = Color(0xFF1C1B1B)
+val DarkSurfaceVariant = Color(0xFF2D2A29)
+val DarkPrimary = Color(0xFFD4A394)
+val OnDarkPrimary = Color(0xFF3A2C29)
+val DarkSecondary = Color(0xFF3D3836)
+val OnDarkSurface = Color(0xFFF2EFED)
+val OnDarkSurfaceVariant = Color(0xFFB5ADA9)
+
 val Sage = Color(0xFF899771)
 val Clay = Color(0xFFB08968)
 val Blush = Color(0xFFE5B3BB)

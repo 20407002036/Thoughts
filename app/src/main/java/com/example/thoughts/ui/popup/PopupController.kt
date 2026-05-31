@@ -11,6 +11,9 @@ class PopupController {
     private val _modal = MutableStateFlow<ModalPopup?>(null)
     val modal: StateFlow<ModalPopup?> = _modal.asStateFlow()
 
+    private val _selection = MutableStateFlow<SelectionPopup?>(null)
+    val selection: StateFlow<SelectionPopup?> = _selection.asStateFlow()
+
     fun showToast(toast: ToastPopup) {
         _toast.value = toast
     }
@@ -25,5 +28,13 @@ class PopupController {
 
     fun dismissModal() {
         _modal.value = null
+    }
+
+    fun showSelection(selection: SelectionPopup) {
+        _selection.value = selection
+    }
+
+    fun dismissSelection() {
+        _selection.value = null
     }
 }

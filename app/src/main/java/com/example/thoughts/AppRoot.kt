@@ -21,10 +21,14 @@ import com.example.thoughts.ui.popup.PopupKind
 import com.example.thoughts.ui.popup.ToastPopup
 import com.example.thoughts.ui.popup.ModalPopup
 import com.example.thoughts.ui.popup.PopupButton
+import com.example.thoughts.ui.theme.ThoughtsTheme
 import kotlinx.coroutines.launch
 
 @Composable
 fun AppRoot() {
+    val themeViewModel: ThemeViewModel = viewModel()
+    val themeMode by themeViewModel.themeMode.collectAsState()
+    
     val session by AuthSessionManager.session.collectAsState()
     val authViewModel: AuthViewModel = viewModel()
     val journalViewModel: JournalViewModel = viewModel()
@@ -32,8 +36,9 @@ fun AppRoot() {
     val popupController = remember { PopupController() }
 
     CompositionLocalProvider(LocalPopupController provides popupController) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            LaunchedEffect(authViewModel) {
+        ThoughtsTheme(themeMode = themeMode) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                LaunchedEffect(authViewModel) {
                 authViewModel.uiEvents.collect { event ->
                     when (event) {
                         is UiEvent.Toast -> {
@@ -124,4 +129,5 @@ fun AppRoot() {
             PopupHost(controller = popupController)
         }
     }
+}
 }
