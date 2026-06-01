@@ -4,6 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,6 +78,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.thoughts.work.UploadWorker
 import com.example.thoughts.ui.theme.ThoughtsTheme
 import com.example.thoughts.ui.theme.ThoughtsColors
 
@@ -81,12 +87,29 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AuthSessionManager.initialize(applicationContext)
         JournalRepository.initialize(applicationContext)
+        enqueueUploadRecoveryWork()
         enableEdgeToEdge()
         setContent {
             ThoughtsTheme {
                 AppRoot()
             }
         }
+    }
+
+    private fun enqueueUploadRecoveryWork() {
+        val uploadWorkRequest = OneTimeWorkRequestBuilder<UploadWorker>()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
+
+        WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+            "audio_uploads",
+            ExistingWorkPolicy.KEEP,
+            uploadWorkRequest,
+        )
     }
 }
 

@@ -13,11 +13,18 @@ private const val TAG = "JournalRepository"
 object JournalRepository {
     private lateinit var database: ThoughtsDatabase
     private lateinit var prefsManager: UserPreferencesManager
+    private var initialized = false
     private val json = Json { ignoreUnknownKeys = true }
 
     fun initialize(context: Context) {
+        if (initialized) return
         database = ThoughtsDatabase.getDatabase(context)
         prefsManager = UserPreferencesManager(context)
+        initialized = true
+    }
+
+    fun ensureInitialized(context: Context) {
+        initialize(context.applicationContext)
     }
 
     private val dao get() = database.journalDao()
@@ -126,12 +133,75 @@ object JournalRepository {
         dao.deleteDraft(id)
     }
 
+    suspend fun getAssetsToUpload(): List<AudioAssetEntity> {
+        return dao.getAssetsToUpload()
+    }
+
+    fun getAudioAssetFlow(id: String): Flow<AudioAsset?> {
+        return dao.getAudioAssetFlow(id).map { it?.toDomain() }
+    }
+
     suspend fun saveAudioAsset(asset: AudioAsset) {
         dao.insertAudioAsset(asset.toEntity())
     }
 
     suspend fun updateAudioUploadState(assetId: String, state: AudioUploadState) {
         dao.updateAudioAssetState(assetId, state.name)
+    }
+
+    suspend fun persistUploadResult(
+        asset: AudioAssetEntity,
+        response: IngestionResponse,
+        languageTag: String,
+    ) {
+        val remoteUrl = response.audioRemoteUrl ?: asset.remoteUrl
+        dao.completeAudioAssetUpload(asset.id, AudioUploadState.Uploaded.name, remoteUrl)
+
+        val transcriptId = "transcript-${response.entryId ?: asset.recordingSessionId}"
+        dao.insertTranscript(
+            TranscriptEntity(
+                id = transcriptId,
+                recordingSessionId = asset.recordingSessionId,
+                fullText = response.transcript,
+                languageTag = languageTag,
+                confidence = response.moodConfidence,
+            )
+        )
+
+        val existingDraft = dao.getDraftByRecordingSessionId(asset.recordingSessionId)
+        val updatedAssetEntity = asset.copy(
+            remoteUrl = remoteUrl,
+            uploadState = AudioUploadState.Uploaded.name,
+        )
+        val updatedAsset = updatedAssetEntity.toDomain()
+        val mood = response.moodLabel?.let { label ->
+            MoodAnalysis(
+                label = label,
+                score = response.moodScore ?: 0f,
+                confidence = response.moodConfidence,
+                explanation = response.moodExplanation,
+            )
+        }
+        val draft = existingDraft?.toDomain(updatedAssetEntity)?.copy(
+            transcriptText = response.transcript,
+            tags = response.tags.map { JournalTag(it, TagSource.Generated) },
+            moodAnalysis = mood,
+            audioAsset = updatedAsset,
+            updatedAtMillis = System.currentTimeMillis(),
+        ) ?: JournalEntryDraft(
+            id = response.draftId ?: "draft-${asset.recordingSessionId}",
+            recordingSessionId = asset.recordingSessionId,
+            transcriptText = response.transcript,
+            audioAsset = updatedAsset,
+            tags = response.tags.map { JournalTag(it, TagSource.Generated) },
+            moodAnalysis = mood,
+            updatedAtMillis = System.currentTimeMillis(),
+        )
+        dao.insertDraft(draft.toEntity())
+    }
+
+    suspend fun savePreferences(preferences: PreferencesResponse) {
+        prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), preferences))
     }
 
     // --- Profile & Preferences ---

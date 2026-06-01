@@ -85,13 +85,35 @@ fun SettingsScreen(navController: NavHostController, journalViewModel: JournalVi
     val appearanceMode = prefs?.appearance_mode?.replaceFirstChar { it.uppercase() } ?: "Auto"
     val audioQuality = prefs?.audio_quality?.replaceFirstChar { it.uppercase() } ?: "High"
     val language = prefs?.language?.uppercase() ?: "EN"
+    val currentPrefs = prefs ?: PreferencesResponse()
+    val nextAppearanceMode = when (currentPrefs.appearance_mode.lowercase()) {
+        "light" -> "dark"
+        "dark" -> "auto"
+        else -> "light"
+    }
 
     val settingsSections = listOf(
         SettingsSection(
             title = "Personal",
             items = listOf(
-                SettingsItem(Icons.Default.Notifications, "Notifications", notificationsStatus),
-                SettingsItem(Icons.Default.Brightness4, "Appearance", appearanceMode),
+                SettingsItem(
+                    Icons.Default.Notifications,
+                    "Notifications",
+                    notificationsStatus,
+                    action = {
+                        journalViewModel.savePreferences(
+                            currentPrefs.copy(notifications_enabled = !currentPrefs.notifications_enabled)
+                        )
+                    }
+                ),
+                SettingsItem(
+                    Icons.Default.Brightness4,
+                    "Appearance",
+                    appearanceMode,
+                    action = {
+                        journalViewModel.savePreferences(currentPrefs.copy(theme = nextAppearanceMode))
+                    }
+                ),
                 SettingsItem(Icons.Default.Mic, "Audio Settings", "$audioQuality • $language")
             )
         ),

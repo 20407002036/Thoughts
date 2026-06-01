@@ -77,6 +77,7 @@ dependencies {
 
     // Security
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.work.runtime.ktx)
 
     // Retrofit and HTTP
     implementation(libs.retrofit)
