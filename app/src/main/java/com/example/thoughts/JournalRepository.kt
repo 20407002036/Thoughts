@@ -75,12 +75,29 @@ object JournalRepository {
             }
     }
 
-    suspend fun getEntry(id: String): Result<JournalEntry> {
-        val local = dao.getEntryById(id)?.toDomain()
-        if (local != null) return Result.success(local)
+    suspend fun getEntry(id: String, forceRefresh: Boolean = false): Result<JournalEntry> {
+        if (!forceRefresh) {
+            val localEntity = dao.getEntryById(id)
+            if (localEntity != null) {
+                val localTranscript = dao.getTranscriptById(localEntity.transcriptId)
+                // Only return local if we have both transcript and audio URL (if it was an audio entry)
+                if (localTranscript != null && localTranscript.fullText.isNotBlank() && localEntity.audioRemoteUrl != null) {
+                    return Result.success(localEntity.toDomain(localTranscript))
+                }
+            }
+        }
 
         return BackendService.getJournalEntry(id).map { response ->
             val entry = response.toJournalEntry()
+            dao.insertTranscript(
+                TranscriptEntity(
+                    id = entry.transcript.id,
+                    recordingSessionId = entry.recordingSessionId,
+                    fullText = entry.transcript.fullText,
+                    languageTag = entry.transcript.languageTag,
+                    confidence = entry.transcript.confidence,
+                )
+            )
             dao.insertEntry(entry.toEntity())
             entry
         }
@@ -89,15 +106,20 @@ object JournalRepository {
     // --- Drafts & Uploads ---
 
     suspend fun getLatestDraft(): JournalEntryDraft? {
-        return dao.getLatestDraft()?.toDomain()
+        val entity = dao.getLatestDraft() ?: return null
+        val audioAsset = entity.audioAssetId?.let { dao.getAudioAssetById(it) }
+        return entity.toDomain(audioAsset)
     }
 
     suspend fun saveDraft(draft: JournalEntryDraft) {
+        draft.audioAsset?.let { saveAudioAsset(it) }
         dao.insertDraft(draft.toEntity())
     }
 
     suspend fun getDraft(id: String): JournalEntryDraft? {
-        return dao.getDraftById(id)?.toDomain()
+        val entity = dao.getDraftById(id) ?: return null
+        val audioAsset = entity.audioAssetId?.let { dao.getAudioAssetById(it) }
+        return entity.toDomain(audioAsset)
     }
 
     suspend fun deleteDraft(id: String) {

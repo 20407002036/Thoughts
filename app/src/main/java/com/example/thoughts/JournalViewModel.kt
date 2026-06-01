@@ -522,9 +522,9 @@ class JournalViewModel(
         return _archivedEntries.value
     }
 
-    fun loadEntry(id: String) {
+    fun loadEntry(id: String, forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            val result = JournalRepository.getEntry(id)
+            val result = JournalRepository.getEntry(id, forceRefresh)
             result.onSuccess { entry ->
                 _selectedEntry.value = entry
             }
@@ -579,13 +579,28 @@ class JournalViewModel(
             transcriptText = response.transcript,
             tags = tags,
             moodAnalysis = mood,
+            audioAsset = currentDraftOrDefault().audioAsset?.copy(
+                remoteUrl = response.audioRemoteUrl,
+                uploadState = AudioUploadState.Uploaded
+            ) ?: AudioAsset(
+                id = "asset-${_recordingSession.value.id}",
+                recordingSessionId = _recordingSession.value.id,
+                remoteUrl = response.audioRemoteUrl,
+                uploadState = AudioUploadState.Uploaded
+            ),
             updatedAtMillis = System.currentTimeMillis(),
         )
         saveDraft(updatedDraft)
 
-        // Cleanup audio file after successful upload
-        audioFile?.let { AudioFileManager.deleteAudioFile(it) }
-        audioFile = null
+        // Wait a bit for UI to transition/load remote URL if needed before cleaning up local file
+        val fileToDelete = audioFile
+        viewModelScope.launch {
+            delay(5000)
+            fileToDelete?.let { AudioFileManager.deleteAudioFile(it) }
+            if (audioFile == fileToDelete) {
+                audioFile = null
+            }
+        }
     }
 
     fun updateTranscriptText(text: String) {

@@ -15,6 +15,8 @@ data class JournalEntryEntity(
     val status: String, // Using String for enum
     val moodLabel: String?,
     val moodScore: Float,
+    val audioAssetId: String? = null,
+    val audioRemoteUrl: String? = null,
 )
 
 @Entity(tableName = "journal_drafts")
