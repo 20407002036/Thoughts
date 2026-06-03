@@ -41,7 +41,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.thoughts.ui.popup.LocalPopupController
+import com.example.thoughts.ui.popup.SelectionOption
+import com.example.thoughts.ui.popup.SelectionPopup
 import com.example.thoughts.ui.theme.ThoughtsColors
 import kotlinx.coroutines.launch
 
@@ -58,10 +62,17 @@ data class SettingsSection(
 )
 
 @Composable
-fun SettingsScreen(navController: NavHostController, journalViewModel: JournalViewModel, authViewModel: AuthViewModel) {
+fun SettingsScreen(
+    navController: NavHostController,
+    journalViewModel: JournalViewModel,
+    authViewModel: AuthViewModel,
+    themeViewModel: ThemeViewModel = viewModel()
+) {
     val scope = rememberCoroutineScope()
+    val popupController = LocalPopupController.current
     val session by AuthSessionManager.session.collectAsState()
     val prefs by journalViewModel.userPreferences.collectAsState()
+    val currentThemeMode by themeViewModel.themeMode.collectAsState()
     
     LaunchedEffect(Unit) {
         journalViewModel.loadProfile()
@@ -82,7 +93,11 @@ fun SettingsScreen(navController: NavHostController, journalViewModel: JournalVi
     val avatarLabel = displayName.firstOrNull { it.isLetter() }?.uppercaseChar()?.toString() ?: "?"
 
     val notificationsStatus = if (prefs?.notifications_enabled == true) "Enabled" else "Disabled"
-    val appearanceMode = prefs?.appearance_mode?.replaceFirstChar { it.uppercase() } ?: "Auto"
+    val appearanceMode = when (currentThemeMode) {
+        ThemeMode.Light -> "Light mode"
+        ThemeMode.Dark -> "Dark mode"
+        ThemeMode.Auto -> "Auto (System theme)"
+    }
     val audioQuality = prefs?.audio_quality?.replaceFirstChar { it.uppercase() } ?: "High"
     val language = prefs?.language?.uppercase() ?: "EN"
     val currentPrefs = prefs ?: PreferencesResponse()
@@ -114,6 +129,32 @@ fun SettingsScreen(navController: NavHostController, journalViewModel: JournalVi
                         journalViewModel.savePreferences(currentPrefs.copy(theme = nextAppearanceMode))
                     }
                 ),
+                SettingsItem(Icons.Default.Notifications, "Notifications", notificationsStatus),
+                SettingsItem(Icons.Default.Brightness4, "Appearance", appearanceMode,
+                    action = {
+                        popupController.showSelection(
+                            SelectionPopup(
+                                title = "Choose Appearance",
+                                options = listOf(
+                                    SelectionOption(
+                                        label = "Dark mode",
+                                        isSelected = currentThemeMode == ThemeMode.Dark,
+                                        onClick = { themeViewModel.setTheme(ThemeMode.Dark) }
+                                    ),
+                                    SelectionOption(
+                                        label = "light mode",
+                                        isSelected = currentThemeMode == ThemeMode.Light,
+                                        onClick = { themeViewModel.setTheme(ThemeMode.Light) }
+                                    ),
+                                    SelectionOption(
+                                        label = "auto (system theme)",
+                                        isSelected = currentThemeMode == ThemeMode.Auto,
+                                        onClick = { themeViewModel.setTheme(ThemeMode.Auto) }
+                                    )
+                                )
+                            )
+                        )
+                    }),
                 SettingsItem(Icons.Default.Mic, "Audio Settings", "$audioQuality • $language")
             )
         ),

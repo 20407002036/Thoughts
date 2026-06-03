@@ -519,6 +519,15 @@ data class PreferencesResponse(
 }
 
 @Serializable
+data class UpdatePreferencesRequest(
+    val appearance_mode: String? = null,
+    val notifications_enabled: Boolean? = null,
+    val prompt_reminder_time: String? = null,
+    val audio_quality: String? = null,
+    val language: String? = null
+)
+
+@Serializable
 data class DashboardResponse(
     val prompt: String? = null,
     val prompt_status: String = "unavailable",

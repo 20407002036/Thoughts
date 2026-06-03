@@ -90,9 +90,7 @@ class MainActivity : ComponentActivity() {
         enqueueUploadRecoveryWork()
         enableEdgeToEdge()
         setContent {
-            ThoughtsTheme {
-                AppRoot()
-            }
+            AppRoot()
         }
     }
 
@@ -192,7 +190,7 @@ fun MindfulBottomNavigation(navController: NavHostController) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
         Row(
@@ -224,8 +222,8 @@ fun MindfulBottomNavigation(navController: NavHostController) {
             MindfulNavItem(
                 selected = currentRoute == Screen.Settings.route,
                 onClick = { navController.navigate(Screen.Settings.route) },
-                icon = Icons.Default.AccountCircle,
-                label = "Account"
+                icon = Icons.Default.Settings,
+                label = "Settings"
             )
         }
     }
@@ -238,7 +236,7 @@ fun MindfulNavItem(
     icon: ImageVector,
     label: String
 ) {
-    val containerColor = if (selected) MaterialTheme.colorScheme.secondary else Color.Transparent
+    val containerColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
     val contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
@@ -331,17 +329,17 @@ fun DashboardHeader(journalViewModel: JournalViewModel) {
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Text(
-            "Welcome, $firstName",
+            "GOOD MORNING, ${firstName.uppercase()}",
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             buildAnnotatedString {
-                append("Focus on the ")
+                append("Focus on the\n")
                 withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, fontStyle = FontStyle.Italic)) {
                     append("Essential.")
                 }
@@ -355,8 +353,9 @@ fun DashboardHeader(journalViewModel: JournalViewModel) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Surface(
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-            shape = CircleShape
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = CircleShape,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -365,14 +364,14 @@ fun DashboardHeader(journalViewModel: JournalViewModel) {
                 Icon(
                     Icons.Default.LocalFireDepartment,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     "${profile?.streak_count ?: 0} DAY STREAK",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -383,18 +382,17 @@ fun DashboardHeader(journalViewModel: JournalViewModel) {
 fun DailyPromptCard(journalViewModel: JournalViewModel, onStartRecording: () -> Unit) {
     val dashboard by journalViewModel.dashboard.collectAsState()
     val promptText = dashboard?.prompt ?: "Your next prompt will appear here."
-    val promptStatus = dashboard?.prompt_status ?: "unavailable"
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 12.dp),
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Background decoration (using Sage for calm tone)
+            // Background decoration
             Icon(
                 Icons.Default.Park,
                 contentDescription = null,
@@ -403,12 +401,12 @@ fun DailyPromptCard(journalViewModel: JournalViewModel, onStartRecording: () -> 
                     .align(Alignment.BottomEnd)
                     .offset(x = 20.dp, y = 20.dp)
                     .blur(1.dp),
-                tint = ThoughtsColors.Sage.copy(alpha = 0.08f)
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
             )
 
             Column(modifier = Modifier.padding(24.dp)) {
                 Surface(
-                    color = ThoughtsColors.Sage.copy(alpha = 0.15f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                     shape = CircleShape
                 ) {
                     Text(
@@ -418,37 +416,22 @@ fun DailyPromptCard(journalViewModel: JournalViewModel, onStartRecording: () -> 
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         ),
-                        color = ThoughtsColors.Sage
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
-                if (promptStatus == "unavailable" || promptText.isBlank()) {
-                    Text(
-                        "Your daily prompt will be ready soon.",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth(0.8f)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        "Check back later for today's reflection prompt.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(0.8f)
-                    )
-                } else {
-                    Text(
-                        promptText,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth(0.8f)
-                    )
-                }
+                Text(
+                    promptText,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = onStartRecording,
                     shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = ThoughtsColors.Sage),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), contentColor = MaterialTheme.colorScheme.onSurface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
                     modifier = Modifier.height(48.dp)
                 ) {
                     Text("Write Entry", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
@@ -467,8 +450,8 @@ fun QuickVoiceStartCard(onStartRecording: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 12.dp),
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = ThoughtsColors.Clay.copy(alpha = 0.12f)),
-        border = BorderStroke(1.dp, ThoughtsColors.Clay.copy(alpha = 0.2f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
     ) {
         Column(
             modifier = Modifier
@@ -481,20 +464,20 @@ fun QuickVoiceStartCard(onStartRecording: () -> Unit) {
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(ThoughtsColors.Clay.copy(alpha = 0.2f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Mic,
                         contentDescription = null,
-                        tint = ThoughtsColors.Clay,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -517,12 +500,10 @@ fun QuickVoiceStartCard(onStartRecording: () -> Unit) {
 
             TextButton(onClick = onStartRecording) {
                 Text(
-                    "Start Recording",
+                    "Start Recording →",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -569,7 +550,7 @@ fun MindfulActivityItem(entry: MindfulEntry) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 4.dp),
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         onClick = { /* Navigate to detail logic */ }
     ) {
         Row(
@@ -580,8 +561,8 @@ fun MindfulActivityItem(entry: MindfulEntry) {
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp)),
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(entry.emoji, fontSize = 24.sp)
@@ -600,8 +581,9 @@ fun MindfulActivityItem(entry: MindfulEntry) {
                 )
             }
             Surface(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                shape = CircleShape
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                shape = CircleShape,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
             ) {
                 Text(
                     entry.tag.uppercase(),
@@ -610,14 +592,14 @@ fun MindfulActivityItem(entry: MindfulEntry) {
                         fontWeight = FontWeight.Bold,
                         fontSize = 9.sp
                     ),
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
