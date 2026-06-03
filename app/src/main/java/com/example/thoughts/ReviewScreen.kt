@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.SentimentSatisfied
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -34,12 +35,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +52,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -63,10 +68,31 @@ import androidx.compose.ui.text.withStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReviewScreen(navController: NavHostController, journalViewModel: JournalViewModel) {
+fun ReviewScreen(
+    navController: NavHostController,
+    journalViewModel: JournalViewModel,
+    playerViewModel: AudioPlayerViewModel = viewModel()
+) {
     val draft = journalViewModel.currentDraft.collectAsState().value ?: createFallbackDraft()
     val uploadState = journalViewModel.uploadState.collectAsState().value
     val backendResult = journalViewModel.backendResult.collectAsState().value
+
+    // Initialize player when draft is loaded and has audio
+    val isExpired by playerViewModel.isExpired.collectAsState()
+    LaunchedEffect(isExpired) {
+        if (isExpired) {
+            // In review screen, we might need to re-fetch the backend result to get a new URL
+            // For now, if it expires here, we just retry the normal load or wait for a refresh
+        }
+    }
+
+    LaunchedEffect(draft) {
+        val audioAsset = draft.audioAsset
+        val audioSource = audioAsset?.remoteUrl ?: audioAsset?.localPath
+        if (audioSource != null) {
+            playerViewModel.loadAudio(audioSource)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -123,6 +149,13 @@ fun ReviewScreen(navController: NavHostController, journalViewModel: JournalView
                 
                 // Hero Header
                 ReviewHeroHeader(draft, backendResult)
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Audio Player Section
+                draft.audioAsset?.let {
+                    AudioPlayerCard(playerViewModel)
+                }
 
                 Spacer(modifier = Modifier.height(48.dp))
 
@@ -566,3 +599,4 @@ fun createFallbackDraft(): JournalEntryDraft {
         updatedAtMillis = System.currentTimeMillis(),
     )
 }
+

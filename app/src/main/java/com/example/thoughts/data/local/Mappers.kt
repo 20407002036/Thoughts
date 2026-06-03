@@ -14,21 +14,28 @@ fun JournalEntrySummaryResponse.toEntity(): JournalEntryEntity {
         takeaway = summary,
         status = status ?: "Ready",
         moodLabel = moodLabel,
-        moodScore = 0f
+        moodScore = 0f,
+        audioRemoteUrl = audioUrl
     )
 }
 
-fun JournalEntryEntity.toDomain(): JournalEntry {
-    // This is a simplified mapping. In a full app, we'd fetch the TranscriptEntity.
-    // For now, we store the minimal required fields in the entity and use a dummy transcript
-    // or fetch it from the DAO in the repository.
+fun JournalEntryEntity.toDomain(transcriptEntity: TranscriptEntity? = null): JournalEntry {
+    val transcriptText = transcriptEntity?.fullText.orEmpty()
     return JournalEntry(
         id = id,
         recordingSessionId = recordingSessionId,
         title = title,
         createdAtMillis = createdAtMillis,
         recordedAtMillis = recordedAtMillis,
-        transcript = Transcript(id = transcriptId, recordingSessionId = recordingSessionId, fullText = ""),
+        transcript = Transcript(id = transcriptId, recordingSessionId = recordingSessionId, fullText = transcriptText),
+        audioAsset = audioRemoteUrl?.let { url ->
+            AudioAsset(
+                id = audioAssetId ?: "asset-$id",
+                recordingSessionId = recordingSessionId,
+                remoteUrl = url,
+                uploadState = AudioUploadState.Uploaded
+            )
+        },
         takeaway = takeaway,
         status = JournalEntryStatus.fromString(status),
     )
@@ -45,7 +52,9 @@ fun JournalEntry.toEntity(): JournalEntryEntity {
         takeaway = takeaway,
         status = status.name,
         moodLabel = moodAnalysis?.label,
-        moodScore = moodAnalysis?.score ?: 0f
+        moodScore = moodAnalysis?.score ?: 0f,
+        audioAssetId = audioAsset?.id,
+        audioRemoteUrl = audioAsset?.remoteUrl ?: audioAsset?.localPath
     )
 }
 
