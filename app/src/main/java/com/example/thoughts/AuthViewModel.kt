@@ -56,6 +56,13 @@ class AuthViewModel : ViewModel() {
                             confirmPassword = "",
                         )
                     }
+
+                    _uiEvents.tryEmit(
+                        UiEvent.Toast(
+                            message = "Welcome back!",
+                            kind = PopupKind.Success,
+                        )
+                    )
                 }
                 .onFailure { throwable ->
                     _uiState.update {
@@ -64,6 +71,13 @@ class AuthViewModel : ViewModel() {
                             errorMessage = throwable.message ?: "Unable to sign in right now.",
                         )
                     }
+
+                    _uiEvents.tryEmit(
+                        UiEvent.Toast(
+                            message = throwable.message ?: "Authentication failed",
+                            kind = PopupKind.Error,
+                        )
+                    )
                 }
         }
     }
@@ -98,6 +112,13 @@ class AuthViewModel : ViewModel() {
                             confirmPassword = "",
                         )
                     }
+
+                    _uiEvents.tryEmit(
+                        UiEvent.Toast(
+                            message = "Account created successfully!",
+                            kind = PopupKind.Success,
+                        )
+                    )
                 }
                 .onFailure { throwable ->
                     _uiState.update {
@@ -106,6 +127,13 @@ class AuthViewModel : ViewModel() {
                             errorMessage = throwable.message ?: "Unable to create your account right now.",
                         )
                     }
+
+                    _uiEvents.tryEmit(
+                        UiEvent.Toast(
+                            message = throwable.message ?: "Account creation failed",
+                            kind = PopupKind.Error,
+                        )
+                    )
                 }
         }
     }
