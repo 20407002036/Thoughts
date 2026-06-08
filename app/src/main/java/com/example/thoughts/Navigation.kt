@@ -23,7 +23,6 @@ fun entryDetailRoute(entryId: String) = "entry/$entryId"
 fun ThoughtsNavHost(
     navController: NavHostController,
     journalViewModel: JournalViewModel,
-    authViewModel: AuthViewModel,
     onLogout: () -> Unit,
     startDestination: String = Screen.Dashboard.route,
 ) {
@@ -45,7 +44,7 @@ fun ThoughtsNavHost(
             EntryDetailScreen(navController, journalViewModel, entryId)
         }
         composable(Screen.Settings.route) {
-            SettingsScreen(navController, journalViewModel, authViewModel)
+            SettingsScreen(navController, journalViewModel)
         }
         composable(Screen.Processing.route) {
             ProcessingScreen(navController, journalViewModel)
