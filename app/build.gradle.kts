@@ -72,6 +72,7 @@ dependencies {
 
     // Security
     implementation(libs.androidx.security.crypto)
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
 
     // Retrofit and HTTP
     implementation(libs.retrofit)

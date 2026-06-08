@@ -160,14 +160,16 @@ class JournalViewModel(
         lastLiveTranscriptPersistedAtMillis = 0L
         lastLiveTranscriptPersistedText = ""
 
-        startBackendLiveTranscription()
+        // TODO: Replace with Local Transcription Engine (Phase 2)
+        // startBackendLiveTranscription()
 
         // Create audio file and start recording
         audioFile = AudioFileManager.createAudioFile(getApplication())
         audioRecorder = AudioRecorder(
             context = getApplication(),
             onPcmChunk = { bytes, length ->
-                liveTranscriptionClient?.sendPcm(bytes, length)
+                // TODO: Route to Local Transcription Engine (Phase 2)
+                // liveTranscriptionClient?.sendPcm(bytes, length)
             },
         ).apply {
             start(audioFile!!)
@@ -177,100 +179,8 @@ class JournalViewModel(
         startTimer()
     }
 
-    private fun startBackendLiveTranscription() {
-        if (liveTranscriptionClient != null) return
-
-        val url = try {
-            ThoughtsApi.liveTranscribeWebSocketUrl()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to build live transcription WS URL", e)
-            _liveTranscriptError.value = "Live transcription unavailable"
-            return
-        }
-
-        val authorization = AuthSessionManager.authorizationHeader()
-
-        liveTranscriptionClient = LiveTranscriptionWebSocketClient(
-            url = url,
-            authorizationHeader = authorization,
-            onOpen = {
-                _isLiveTranscribing.value = true
-            },
-            onMessage = { message ->
-                handleBackendLiveTranscriptionMessage(message)
-            },
-            onFailure = { throwable ->
-                _isLiveTranscribing.value = false
-                _liveTranscriptError.value = throwable.message ?: "Live transcription unavailable"
-            },
-            onClosed = {
-                _isLiveTranscribing.value = false
-            },
-        ).also { it.connect() }
-    }
-
-    private fun stopBackendLiveTranscription(sendStop: Boolean) {
-        val client = liveTranscriptionClient ?: return
-        liveTranscriptionClient = null
-
-        if (sendStop) {
-            try {
-                client.stop()
-            } finally {
-                client.close(reason = "stop")
-            }
-        } else {
-            client.close(reason = "close")
-        }
-
-        _isLiveTranscribing.value = false
-    }
-
-    private fun handleBackendLiveTranscriptionMessage(message: LiveTranscriptionMessage) {
-        if (!message.error.isNullOrBlank()) {
-            _liveTranscriptError.value = message.error
-        }
-
-        if (!message.finalText.isNullOrBlank()) {
-            liveTranscriptFinalText = listOf(liveTranscriptFinalText, message.finalText)
-                .filter { it.isNotBlank() }
-                .joinToString(" ")
-                .trim()
-            liveTranscriptPartialText = ""
-        }
-
-        if (!message.partial.isNullOrBlank()) {
-            liveTranscriptPartialText = message.partial
-        }
-
-        val combined = buildString {
-            if (liveTranscriptFinalText.isNotBlank()) append(liveTranscriptFinalText)
-            if (liveTranscriptPartialText.isNotBlank()) {
-                if (isNotBlank()) append(' ')
-                append(liveTranscriptPartialText)
-            }
-        }.trim()
-
-        if (combined.isNotBlank()) {
-            _liveTranscriptText.value = combined
-            maybePersistLiveTranscript(combined)
-        }
-
-        if (message.sessionEnded == true) {
-            stopBackendLiveTranscription(sendStop = false)
-        }
-    }
-
-    private fun maybePersistLiveTranscript(text: String) {
-        val now = System.currentTimeMillis()
-        val shouldPersist = text != lastLiveTranscriptPersistedText &&
-            (now - lastLiveTranscriptPersistedAtMillis) >= 1000L
-        if (shouldPersist) {
-            lastLiveTranscriptPersistedAtMillis = now
-            lastLiveTranscriptPersistedText = text
-            updateTranscriptText(text)
-        }
-    }
+    // Backend transcription methods removed for local-first migration
+    // startBackendLiveTranscription(), stopBackendLiveTranscription(), handleBackendLiveTranscriptionMessage() ...
 
     private fun startTimer() {
         timerJob?.cancel()
@@ -306,7 +216,6 @@ class JournalViewModel(
             }
             RecordingStatus.Finished -> {
                 audioRecorder?.stop()
-                stopBackendLiveTranscription(sendStop = true)
                 stopTimer()
                 current.copy(
                     status = status,
@@ -316,18 +225,15 @@ class JournalViewModel(
             }
             RecordingStatus.Discarded -> {
                 audioRecorder?.stop()
-                stopBackendLiveTranscription(sendStop = true)
                 stopTimer()
                 current.copy(status = status, endedAtMillis = now)
             }
             RecordingStatus.Error -> {
                 audioRecorder?.stop()
-                stopBackendLiveTranscription(sendStop = true)
                 current.copy(status = status)
             }
             RecordingStatus.Idle -> {
                 audioRecorder?.stop()
-                stopBackendLiveTranscription(sendStop = true)
                 current.copy(status = status)
             }
         }
@@ -337,7 +243,6 @@ class JournalViewModel(
 
     fun finishRecordingAndUpload() {
         audioRecorder?.stop()
-        stopBackendLiveTranscription(sendStop = true)
         stopTimer()
 
         val now = System.currentTimeMillis()
@@ -366,26 +271,21 @@ class JournalViewModel(
         )
         viewModelScope.launch {
             JournalRepository.saveAudioAsset(asset)
-            // Link asset to draft
             val currentDraft = currentDraftOrDefault()
             saveDraft(currentDraft.copy(audioAsset = asset))
         }
 
-        // Start upload
-        uploadRetryCount = 0
-
         _uiEvents.tryEmit(
             UiEvent.Toast(
-                message = "Transcription started",
+                message = "Recording saved locally",
                 kind = PopupKind.Success,
             )
         )
-        uploadAudioToBackend()
+        // Local analysis will be implemented in Phase 3
     }
 
     fun discardRecording() {
         audioRecorder?.stop()
-        stopBackendLiveTranscription(sendStop = true)
         stopTimer()
 
         // Delete audio file
@@ -403,71 +303,11 @@ class JournalViewModel(
         _isLiveTranscribing.value = false
     }
 
-    private fun uploadAudioToBackend() {
-        val file = audioFile ?: run {
-            Log.e(TAG, "Audio file is null")
-            _uploadError.value = "No audio file to upload"
-            _uploadState.value = AudioUploadState.Failed
-            return
-        }
-
-        val assetId = "asset-${_recordingSession.value.id}"
-        _uploadState.value = AudioUploadState.Uploading
-        _uploadError.value = null
-
-        viewModelScope.launch {
-            JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Uploading)
-        }
-
-        viewModelScope.launch {
-            val durationMs = _recordingSession.value.durationMs
-            val locale = Locale.getDefault().toLanguageTag()
-
-            val result = BackendService.uploadAudioForTranscription(
-                audioFile = file,
-                durationMs = durationMs,
-                locale = locale,
-            )
-
-            result.onSuccess { response ->
-                Log.d(TAG, "Upload successful: ${response.transcript.take(100)}")
-                _uploadState.value = AudioUploadState.Processing
-                JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Processing)
-                processingComplete(response)
-            }
-
-            result.onFailure { exception ->
-                Log.e(TAG, "Upload failed", exception)
-                val isPermanentFailure = exception is IllegalStateException || exception is IllegalArgumentException
-                if (!isPermanentFailure && uploadRetryCount < MAX_UPLOAD_RETRIES) {
-                    uploadRetryCount++
-                    val backoffMs = (1000L * uploadRetryCount).coerceAtMost(5000L)
-                    Log.d(TAG, "Retrying upload in ${backoffMs}ms (attempt $uploadRetryCount/$MAX_UPLOAD_RETRIES)")
-                    delay(backoffMs)
-                    uploadAudioToBackend()
-                } else {
-                    _uploadState.value = AudioUploadState.Failed
-                    JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Failed)
-                    _uploadError.value = exception.message ?: "Upload failed"
-
-                    _uiEvents.tryEmit(
-                        UiEvent.Modal(
-                            kind = PopupKind.Error,
-                            title = "Upload Interrupted",
-                            message = "We couldn't reach the sanctuary. Please check your connection and try again.",
-                            primaryLabel = "Try Again",
-                            secondaryLabel = "Dismiss",
-                            action = UiAction.RetryUpload,
-                        )
-                    )
-                }
-            }
-        }
-    }
+    // Local analysis will be implemented in Phase 3
+    // private fun uploadAudioToBackend() { ... }
 
     fun retryUpload() {
-        uploadRetryCount = 0
-        uploadAudioToBackend()
+        // No-op in local-first mode
     }
 
     fun loadArchivedEntries() {
@@ -515,39 +355,8 @@ class JournalViewModel(
         }
     }
 
-    private fun processingComplete(response: IngestionResponse) {
-        _backendResult.value = response
-        _uploadState.value = AudioUploadState.Uploaded
-
-        val assetId = "asset-${_recordingSession.value.id}"
-        viewModelScope.launch {
-            JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Uploaded)
-        }
-
-        // Update draft with backend results
-        val tags = response.tags.map { JournalTag(it, TagSource.Generated) }
-        val moodLabel = response.moodLabel
-        val mood = if (moodLabel != null) {
-            MoodAnalysis(
-                label = moodLabel,
-                score = response.moodScore ?: 0f,
-                confidence = response.moodConfidence,
-                explanation = response.moodExplanation,
-            )
-        } else null
-
-        val updatedDraft = currentDraftOrDefault().copy(
-            transcriptText = response.transcript,
-            tags = tags,
-            moodAnalysis = mood,
-            updatedAtMillis = System.currentTimeMillis(),
-        )
-        saveDraft(updatedDraft)
-
-        // Cleanup audio file after successful upload
-        audioFile?.let { AudioFileManager.deleteAudioFile(it) }
-        audioFile = null
-    }
+    // Local analysis will be implemented in Phase 3
+    // private fun processingComplete(response: IngestionResponse) { ... }
 
     fun updateTranscriptText(text: String) {
         val draft = currentDraftOrDefault().copy(
@@ -623,8 +432,6 @@ class JournalViewModel(
         super.onCleared()
         audioRecorder?.stop()
         stopTimer()
-
-        stopBackendLiveTranscription(sendStop = true)
     }
 }
 

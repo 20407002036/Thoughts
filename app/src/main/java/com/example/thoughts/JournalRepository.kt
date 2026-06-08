@@ -38,21 +38,48 @@ object JournalRepository {
     }
 
     suspend fun refreshDashboard() {
-        BackendService.getDashboard()
-            .onSuccess { response ->
-                dao.saveDashboardCache(
-                    DashboardCacheEntity(
-                        prompt = response.prompt,
-                        promptStatus = response.prompt_status,
-                        streakCount = response.streak_count,
-                        entryCount = response.entry_count,
-                        updatedAtMillis = System.currentTimeMillis()
-                    )
-                )
+        val entries = dao.getAllEntries().first()
+        val entryCount = entries.size
+        val streak = calculateStreak(entries)
+
+        dao.saveDashboardCache(
+            DashboardCacheEntity(
+                prompt = "How was your day?", // Default local prompt
+                promptStatus = "active",
+                streakCount = streak,
+                entryCount = entryCount,
+                updatedAtMillis = System.currentTimeMillis()
+            )
+        )
+    }
+
+    private fun calculateStreak(entries: List<JournalEntryEntity>): Int {
+        if (entries.isEmpty()) return 0
+
+        val dates = entries.map { it.createdAtMillis }
+            .map { java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
+            .distinct()
+            .sortedDescending()
+
+        var streak = 0
+        var currentDate = java.time.LocalDate.now()
+
+        val hasEntryToday = dates.contains(currentDate)
+        val hasEntryYesterday = dates.contains(currentDate.minusDays(1))
+
+        if (!hasEntryToday && !hasEntryYesterday) return 0
+
+        var checkDate = if (hasEntryToday) currentDate else currentDate.minusDays(1)
+
+        for (date in dates) {
+            if (date == checkDate) {
+                streak++
+                checkDate = checkDate.minusDays(1)
+            } else if (date.isBefore(checkDate)) {
+                break
             }
-            .onFailure { error ->
-                Log.e(TAG, "Failed to load dashboard", error)
-            }
+        }
+        return streak
     }
 
     // --- Journal Entries ---
@@ -64,25 +91,15 @@ object JournalRepository {
     }
 
     suspend fun refreshEntries() {
-        BackendService.listJournalEntries(limit = 50)
-            .onSuccess { response ->
-                response.entries.forEach { summary ->
-                    dao.insertEntry(summary.toEntity())
-                }
-            }
-            .onFailure { error ->
-                Log.e(TAG, "Failed to load journal entries", error)
-            }
+        // No-op in local-first mode: Room is the source of truth
     }
 
     suspend fun getEntry(id: String): Result<JournalEntry> {
         val local = dao.getEntryById(id)?.toDomain()
-        if (local != null) return Result.success(local)
-
-        return BackendService.getJournalEntry(id).map { response ->
-            val entry = response.toJournalEntry()
-            dao.insertEntry(entry.toEntity())
-            entry
+        return if (local != null) {
+            Result.success(local)
+        } else {
+            Result.failure(Exception("Entry not found locally"))
         }
     }
 
@@ -121,9 +138,7 @@ object JournalRepository {
     }
 
     suspend fun refreshProfile() {
-        BackendService.getProfile().onSuccess { profile ->
-            prefsManager.saveUserProfile(json.encodeToString(ProfileResponse.serializer(), profile))
-        }
+        // No-op in local-first mode
     }
 
     fun getPreferencesFlow(): Flow<PreferencesResponse?> {
@@ -133,28 +148,10 @@ object JournalRepository {
     }
 
     suspend fun refreshPreferences() {
-        BackendService.getPreferences().onSuccess { prefs ->
-            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), prefs))
-        }
+        // No-op in local-first mode
     }
 
     suspend fun savePreferences(prefs: PreferencesResponse) {
-        // Prepare patch request
-        val request = UpdatePreferencesRequest(
-            appearance_mode = prefs.theme,
-            notifications_enabled = prefs.notifications_enabled,
-            prompt_reminder_time = prefs.reminder_time,
-            language = prefs.language
-        )
-
-        // Sync to backend first
-        BackendService.updatePreferences(request).onSuccess { updated ->
-            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), updated))
-        }.onFailure {
-            // Even if backend fails, we save locally for offline-first feel
-            // but log the error
-            Log.e(TAG, "Failed to sync preferences to backend", it)
-            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), prefs))
-        }
+        prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), prefs))
     }
 }

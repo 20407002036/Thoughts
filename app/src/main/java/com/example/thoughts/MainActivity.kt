@@ -78,7 +78,6 @@ import com.example.thoughts.ui.theme.ThoughtsColors
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        AuthSessionManager.initialize(applicationContext)
         JournalRepository.initialize(applicationContext)
         enableEdgeToEdge()
         setContent {
@@ -90,14 +89,10 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MindfulTopAppBar(
-    onLogout: () -> Unit = {},
     showClose: Boolean = false,
     onClose: () -> Unit = {}
 ) {
-    val session by AuthSessionManager.session.collectAsState()
-    val avatarLabel = session?.displayName?.trim().orEmpty().takeIf { it.isNotBlank() }
-        ?: session?.email?.trim().orEmpty().takeIf { it.isNotBlank() }
-        ?: "?"
+    val avatarLabel = "?"
 
     TopAppBar(
         title = {
@@ -135,7 +130,7 @@ fun MindfulTopAppBar(
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
             } else {
-                IconButton(onClick = onLogout) {
+                IconButton(onClick = { /* No-op in local-first mode */ }) {
                     Box(
                         modifier = Modifier
                             .size(32.dp)
@@ -291,12 +286,11 @@ fun DashboardScreen(navController: NavHostController, journalViewModel: JournalV
 @Composable
 fun DashboardHeader(journalViewModel: JournalViewModel) {
     val profile by journalViewModel.userProfile.collectAsState()
-    val session by AuthSessionManager.session.collectAsState()
-    
-    val rawName = profile?.display_name?.trim().orEmpty().ifBlank { 
-        session?.displayName?.trim().orEmpty() 
+
+    val rawName = profile?.display_name?.trim().orEmpty().ifBlank {
+        "User"
     }
-    
+
     val firstName = rawName.split(" ").firstOrNull { it.isNotBlank() } ?: "there"
 
     Column(
