@@ -93,6 +93,19 @@ class JournalViewModel(
                 }
             }
         }
+        // Transcription State Collection
+        viewModelScope.launch {
+            transcriptionEngine.state.collect { state ->
+                _liveTranscriptText.value = state.transcript
+                _liveTranscriptError.value = state.error
+                _isLiveTranscribing.value = state.isTranscribing
+                
+                // Persist transcript to draft if it changes
+                if (state.transcript.isNotEmpty()) {
+                    updateTranscriptText(state.transcript)
+                }
+            }
+        }
     }
 
     private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
@@ -103,10 +116,8 @@ class JournalViewModel(
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
 
-    // --- Backend live transcription (WebSocket, PCM streaming) ---
-    private var liveTranscriptionClient: LiveTranscriptionWebSocketClient? = null
-    private var liveTranscriptFinalText: String = ""
-    private var liveTranscriptPartialText: String = ""
+    // --- On-Device Transcription Engine (Phase 2) ---
+    private val transcriptionEngine: TranscriptionEngine = SystemTranscriptionEngine(application)
 
     private val _liveTranscriptText = MutableStateFlow("")
     val liveTranscriptText: StateFlow<String> = _liveTranscriptText.asStateFlow()
@@ -116,9 +127,6 @@ class JournalViewModel(
 
     private val _isLiveTranscribing = MutableStateFlow(false)
     val isLiveTranscribing: StateFlow<Boolean> = _isLiveTranscribing.asStateFlow()
-
-    private var lastLiveTranscriptPersistedAtMillis: Long = 0L
-    private var lastLiveTranscriptPersistedText: String = ""
 
     fun saveDraft(draft: JournalEntryDraft) {
         _currentDraft.value = draft
@@ -155,21 +163,17 @@ class JournalViewModel(
         _liveTranscriptText.value = ""
         _liveTranscriptError.value = null
         _isLiveTranscribing.value = false
-        liveTranscriptFinalText = ""
-        liveTranscriptPartialText = ""
-        lastLiveTranscriptPersistedAtMillis = 0L
-        lastLiveTranscriptPersistedText = ""
 
-        // TODO: Replace with Local Transcription Engine (Phase 2)
-        // startBackendLiveTranscription()
+        // Start On-Device Transcription Engine (Phase 2)
+        transcriptionEngine.start()
 
         // Create audio file and start recording
         audioFile = AudioFileManager.createAudioFile(getApplication())
         audioRecorder = AudioRecorder(
             context = getApplication(),
-            onPcmChunk = { bytes, length ->
-                // TODO: Route to Local Transcription Engine (Phase 2)
-                // liveTranscriptionClient?.sendPcm(bytes, length)
+            onPcmChunk = { _, _ ->
+                // Native system transcription (SystemTranscriptionEngine) doesn't require PCM chunks
+                // but other implementations (like Whisper) might.
             },
         ).apply {
             start(audioFile!!)
@@ -208,14 +212,17 @@ class JournalViewModel(
         val updatedSession = when (status) {
             RecordingStatus.Paused -> {
                 audioRecorder?.pause()
+                transcriptionEngine.stop()
                 current.copy(status = status)
             }
             RecordingStatus.Recording -> {
                 audioRecorder?.resume()
+                transcriptionEngine.start()
                 current.copy(status = status, endedAtMillis = null)
             }
             RecordingStatus.Finished -> {
                 audioRecorder?.stop()
+                transcriptionEngine.stop()
                 stopTimer()
                 current.copy(
                     status = status,
@@ -225,15 +232,18 @@ class JournalViewModel(
             }
             RecordingStatus.Discarded -> {
                 audioRecorder?.stop()
+                transcriptionEngine.cancel()
                 stopTimer()
                 current.copy(status = status, endedAtMillis = now)
             }
             RecordingStatus.Error -> {
                 audioRecorder?.stop()
+                transcriptionEngine.stop()
                 current.copy(status = status)
             }
             RecordingStatus.Idle -> {
                 audioRecorder?.stop()
+                transcriptionEngine.cancel()
                 current.copy(status = status)
             }
         }
@@ -243,6 +253,7 @@ class JournalViewModel(
 
     fun finishRecordingAndUpload() {
         audioRecorder?.stop()
+        transcriptionEngine.stop()
         stopTimer()
 
         val now = System.currentTimeMillis()
@@ -286,6 +297,7 @@ class JournalViewModel(
 
     fun discardRecording() {
         audioRecorder?.stop()
+        transcriptionEngine.cancel()
         stopTimer()
 
         // Delete audio file
@@ -431,6 +443,7 @@ class JournalViewModel(
     override fun onCleared() {
         super.onCleared()
         audioRecorder?.stop()
+        transcriptionEngine.release()
         stopTimer()
     }
 }
