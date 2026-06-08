@@ -1,18 +1,25 @@
 package com.example.thoughts
 
+import android.app.ActivityManager
 import android.content.Context
 import android.util.Log
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 
 private const val TAG = "MediaPipeAnalysisEngine"
+private const val RELEASE_TIMEOUT_MS = 5 * 60 * 1000L // 5 minutes
 
 /**
  * Implementation of [AnalysisEngine] using MediaPipe LLM Inference (Gemma 2B).
+ * Includes Phase 4 optimizations for Resource & Power Management.
  */
 class MediaPipeAnalysisEngine(
     private val context: Context,
@@ -21,9 +28,29 @@ class MediaPipeAnalysisEngine(
 
     private var llmInference: LlmInference? = null
     private val jsonParser = Json { ignoreUnknownKeys = true }
+    private val scope = CoroutineScope(Dispatchers.Default)
+    private var releaseJob: Job? = null
+
+    init {
+        checkResourceTiers()
+    }
+
+    private fun checkResourceTiers() {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memoryInfo)
+        
+        val totalRamGb = memoryInfo.totalMem / (1024 * 1024 * 1024.0)
+        Log.d(TAG, "Device Total RAM: ${"%.2f".format(totalRamGb)} GB")
+        
+        if (totalRamGb < 8.0) {
+            Log.w(TAG, "Device RAM is below 8GB. AI analysis may be slow or cause app restarts.")
+        }
+    }
 
     override suspend fun initialize(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            resetReleaseTimer()
             if (llmInference != null) return@withContext Result.success(Unit)
 
             val modelFile = File(modelPath)
@@ -49,7 +76,17 @@ class MediaPipeAnalysisEngine(
     }
 
     override suspend fun analyze(text: String): Result<AnalysisResult> = withContext(Dispatchers.IO) {
-        val inference = llmInference ?: return@withContext Result.failure(Exception("Engine not initialized"))
+        resetReleaseTimer()
+        
+        // Auto-initialize if released
+        if (llmInference == null) {
+            val initResult = initialize()
+            if (initResult.isFailure) {
+                return@withContext Result.failure(initResult.exceptionOrNull()!!)
+            }
+        }
+
+        val inference = llmInference ?: return@withContext Result.failure(Exception("Engine failed to initialize"))
 
         try {
             val prompt = buildPrompt(text)
@@ -102,9 +139,22 @@ class MediaPipeAnalysisEngine(
         return response
     }
 
+    private fun resetReleaseTimer() {
+        releaseJob?.cancel()
+        releaseJob = scope.launch {
+            delay(RELEASE_TIMEOUT_MS)
+            withContext(Dispatchers.IO) {
+                Log.d(TAG, "Inactivity timeout reached. Releasing LLM to save memory.")
+                release()
+            }
+        }
+    }
+
     override fun release() {
+        releaseJob?.cancel()
         llmInference?.close()
         llmInference = null
+        Log.d(TAG, "MediaPipe LLM released")
     }
 
     @Serializable
