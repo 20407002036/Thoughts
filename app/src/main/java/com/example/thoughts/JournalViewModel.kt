@@ -106,6 +106,13 @@ class JournalViewModel(
                 }
             }
         }
+        // AI Engine Initialization
+        viewModelScope.launch {
+            analysisEngine.initialize().onFailure { error ->
+                Log.e(TAG, "AI Engine initialization failed", error)
+                _uiEvents.tryEmit(UiEvent.Toast("AI features offline: ${error.message}", PopupKind.Error))
+            }
+        }
     }
 
     private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
@@ -118,6 +125,16 @@ class JournalViewModel(
 
     // --- On-Device Transcription Engine (Phase 2) ---
     private val transcriptionEngine: TranscriptionEngine = SystemTranscriptionEngine(application)
+
+    // --- On-Device AI Analysis Engine (Phase 3) ---
+    private val analysisEngine: AnalysisEngine = MediaPipeAnalysisEngine(
+        application,
+        // Path to the downloaded gemma-2b-it-cpu-int4.bin model
+        File(application.filesDir, "models/gemma-2b.bin").absolutePath
+    )
+
+    private val _isAnalyzing = MutableStateFlow(false)
+    val isAnalyzing: StateFlow<Boolean> = _isAnalyzing.asStateFlow()
 
     private val _liveTranscriptText = MutableStateFlow("")
     val liveTranscriptText: StateFlow<String> = _liveTranscriptText.asStateFlow()
@@ -283,7 +300,11 @@ class JournalViewModel(
         viewModelScope.launch {
             JournalRepository.saveAudioAsset(asset)
             val currentDraft = currentDraftOrDefault()
-            saveDraft(currentDraft.copy(audioAsset = asset))
+            val finalDraft = currentDraft.copy(audioAsset = asset)
+            saveDraft(finalDraft)
+
+            // Trigger On-Device Analysis (Phase 3)
+            processJournalEntryLocally(finalDraft)
         }
 
         _uiEvents.tryEmit(
@@ -292,7 +313,39 @@ class JournalViewModel(
                 kind = PopupKind.Success,
             )
         )
-        // Local analysis will be implemented in Phase 3
+    }
+
+    private fun processJournalEntryLocally(draft: JournalEntryDraft) {
+        if (draft.transcriptText.isBlank()) return
+
+        viewModelScope.launch {
+            _isAnalyzing.value = true
+            _uploadState.value = AudioUploadState.Processing
+            
+            analysisEngine.analyze(draft.transcriptText)
+                .onSuccess { result ->
+                    val updatedDraft = draft.copy(
+                        tags = result.tags.map { JournalTag(it) },
+                        moodAnalysis = MoodAnalysis(
+                            label = result.mood,
+                            score = result.moodScore.toFloat(),
+                            explanation = result.moodExplanation
+                        ),
+                        takeaway = result.takeaway
+                    )
+                    saveDraft(updatedDraft)
+                    _uploadState.value = AudioUploadState.Uploaded
+                    _uiEvents.tryEmit(UiEvent.Toast("Insights generated", PopupKind.Success))
+                }
+                .onFailure { error ->
+                    Log.e(TAG, "Local analysis failed", error)
+                    _uploadState.value = AudioUploadState.Failed
+                    _uiEvents.tryEmit(UiEvent.Toast("Analysis failed: ${error.message}", PopupKind.Error))
+                }
+                .also {
+                    _isAnalyzing.value = false
+                }
+        }
     }
 
     fun discardRecording() {
@@ -444,6 +497,7 @@ class JournalViewModel(
         super.onCleared()
         audioRecorder?.stop()
         transcriptionEngine.release()
+        analysisEngine.release()
         stopTimer()
     }
 }

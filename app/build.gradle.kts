@@ -74,6 +74,9 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
 
+    // AI Analysis (Phase 3)
+    implementation(libs.mediapipe.tasks.genai)
+
     // Retrofit and HTTP
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
