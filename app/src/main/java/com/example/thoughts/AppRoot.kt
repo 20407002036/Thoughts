@@ -93,17 +93,17 @@ fun AppRoot() {
                         }
                     }
                 }
+if (isUnlocked) {
+    val navController = rememberNavController()
+    ThoughtsNavHost(
+        navController = navController,
+        journalViewModel = journalViewModel,
+        onLogout = {
+            // No-op in local-first mode
+        },
+    )
+} else {
 
-                if (isUnlocked) {
-                    val navController = rememberNavController()
-                    ThoughtsNavHost(
-                        navController = navController,
-                        journalViewModel = journalViewModel,
-                        onLogout = {
-                            // No-op in local-first mode
-                        },
-                    )
-                } else {
                     // Locked state: Show a simple locked overlay or nothing
                     Box(modifier = Modifier.fillMaxSize()) {
                         // Could add a "Unlock" button here if biometric failed

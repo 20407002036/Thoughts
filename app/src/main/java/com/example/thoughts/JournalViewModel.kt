@@ -106,13 +106,35 @@ class JournalViewModel(
                 }
             }
         }
-        // AI Engine Initialization
+        // Model Status & AI Engine Initialization
         viewModelScope.launch {
-            analysisEngine.initialize().onFailure { error ->
-                Log.e(TAG, "AI Engine initialization failed", error)
-                _uiEvents.tryEmit(UiEvent.Toast("AI features offline: ${error.message}", PopupKind.Error))
+            modelStatus.collect { status ->
+                when (status) {
+                    is ModelStatus.Downloaded -> {
+                        analysisEngine.initialize().onFailure { error ->
+                            Log.e(TAG, "AI Engine initialization failed", error)
+                        }
+                    }
+                    is ModelStatus.Downloading -> {
+                        pollModelDownloadStatus()
+                    }
+                    else -> Unit
+                }
             }
         }
+    }
+
+    private fun pollModelDownloadStatus() {
+        viewModelScope.launch {
+            while (modelStatus.value is ModelStatus.Downloading) {
+                modelManager.updateProgress()
+                delay(1000)
+            }
+        }
+    }
+
+    fun downloadModel() {
+        modelManager.startDownload()
     }
 
     private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
@@ -126,11 +148,14 @@ class JournalViewModel(
     // --- On-Device Transcription Engine (Phase 2) ---
     private val transcriptionEngine: TranscriptionEngine = SystemTranscriptionEngine(application)
 
+    // --- Model Management ---
+    private val modelManager = ModelManager(application)
+    val modelStatus = modelManager.status
+
     // --- On-Device AI Analysis Engine (Phase 3) ---
     private val analysisEngine: AnalysisEngine = MediaPipeAnalysisEngine(
         application,
-        // Path to the downloaded gemma-2b-it-cpu-int4.bin model
-        File(application.filesDir, "models/gemma-2b.bin").absolutePath
+        modelManager.getModelFile().absolutePath
     )
 
     private val _isAnalyzing = MutableStateFlow(false)

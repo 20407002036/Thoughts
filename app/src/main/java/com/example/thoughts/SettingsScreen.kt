@@ -21,8 +21,8 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Brightness4
-import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -65,14 +65,13 @@ data class SettingsSection(
 fun SettingsScreen(
     navController: NavHostController,
     journalViewModel: JournalViewModel,
-    authViewModel: AuthViewModel,
     themeViewModel: ThemeViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
     val popupController = LocalPopupController.current
-    val session by AuthSessionManager.session.collectAsState()
     val prefs by journalViewModel.userPreferences.collectAsState()
     val currentThemeMode by themeViewModel.themeMode.collectAsState()
+    val modelStatus by journalViewModel.modelStatus.collectAsState()
     
     LaunchedEffect(Unit) {
         journalViewModel.loadProfile()
@@ -82,13 +81,13 @@ fun SettingsScreen(
     val profile by journalViewModel.userProfile.collectAsState()
     
     val rawName = profile?.display_name_compat?.trim().orEmpty().ifBlank {
-        session?.displayName?.trim().orEmpty() 
+        "User"
     }
-    val displayName = rawName.ifBlank { "Connected account" }
+    val displayName = rawName.ifBlank { "User" }
     
     val email = profile?.email?.trim().orEmpty().ifBlank { 
-        session?.email?.trim().orEmpty() 
-    }.ifBlank { "Signed in" }
+        "Local Account"
+    }
     
     val avatarLabel = displayName.firstOrNull { it.isLetter() }?.uppercaseChar()?.toString() ?: "?"
 
@@ -100,6 +99,13 @@ fun SettingsScreen(
     }
     val audioQuality = prefs?.audio_quality?.replaceFirstChar { it.uppercase() } ?: "High"
     val language = prefs?.language?.uppercase() ?: "EN"
+
+    val modelHint = when (val status = modelStatus) {
+        is ModelStatus.Downloaded -> "Ready (Gemma 2B)"
+        is ModelStatus.Downloading -> "Downloading... ${status.progress}%"
+        is ModelStatus.NotDownloaded -> "Download Required (1.5GB)"
+        is ModelStatus.Error -> "Error: ${status.message}"
+    }
 
     val settingsSections = listOf(
         SettingsSection(
@@ -135,18 +141,28 @@ fun SettingsScreen(
             )
         ),
         SettingsSection(
+            title = "Intelligence",
+            items = listOf(
+                SettingsItem(Icons.Default.Psychology, "AI Brain", modelHint, 
+                    action = {
+                        if (modelStatus is ModelStatus.NotDownloaded || modelStatus is ModelStatus.Error) {
+                            journalViewModel.downloadModel()
+                        }
+                    }
+                )
+            )
+        ),
+        SettingsSection(
             title = "Privacy",
             items = listOf(
                 SettingsItem(Icons.Default.Lock, "End-to-end Encryption", "On"),
                 SettingsItem(Icons.Default.Help, "Help & Support", ""),
                 SettingsItem(
                     Icons.Default.ExitToApp,
-                    "Sign Out",
-                    "",
+                    "Reset Session",
+                    "Clears local cache",
                     action = {
-                        scope.launch {
-                            authViewModel.logout()
-                        }
+                        // Clear draft or similar local reset
                     }
                 )
             )
