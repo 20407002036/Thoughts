@@ -8,31 +8,28 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-private const val TAG = "VoiceToTextParser"
+private const val TAG = "SystemTranscriptionEngine"
 
-data class VoiceToTextParserState(
-    val isSpeaking: Boolean = false,
-    val spokenText: String = "",
-    val error: String? = null,
-    val errorCode: Int? = null
-)
-
-class VoiceToTextParser(
+/**
+ * Implementation of [TranscriptionEngine] using Android's built-in [SpeechRecognizer].
+ */
+class SystemTranscriptionEngine(
     private val app: Application
-) : RecognitionListener {
+) : TranscriptionEngine, RecognitionListener {
 
-    private val _state = MutableStateFlow(VoiceToTextParserState())
-    val state = _state.asStateFlow()
+    private val _state = MutableStateFlow(TranscriptionState())
+    override val state: StateFlow<TranscriptionState> = _state.asStateFlow()
 
     private val recognizer = SpeechRecognizer.createSpeechRecognizer(app)
     private var isRecognizerActive = false
 
-    fun startListening(languageCode: String = "en-US") {
+    override fun start(languageCode: String) {
         if (isRecognizerActive) {
-            Log.d(TAG, "Recognizer already active, ignoring startListening")
+            Log.d(TAG, "Recognizer already active, ignoring start")
             return
         }
         
@@ -41,7 +38,7 @@ class VoiceToTextParser(
         if (!SpeechRecognizer.isRecognitionAvailable(app)) {
             _state.update {
                 it.copy(
-                    error = "Recognition is not available"
+                    error = "Recognition is not available on this device"
                 )
             }
             return
@@ -66,40 +63,40 @@ class VoiceToTextParser(
             isRecognizerActive = true
             _state.update {
                 it.copy(
-                    isSpeaking = true
+                    isTranscribing = true
                 )
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start listening", e)
-            _state.update { it.copy(error = e.message, isSpeaking = false) }
+            _state.update { it.copy(error = e.message, isTranscribing = false) }
         }
     }
 
-    fun stopListening() {
+    override fun stop() {
         if (!isRecognizerActive) return
         
         _state.update {
             it.copy(
-                isSpeaking = false
+                isTranscribing = false
             )
         }
         recognizer.stopListening()
-        // We don't set isRecognizerActive = false here, 
-        // we wait for onResults, onError, or onEndOfSpeech
     }
 
-    fun cancel() {
+    override fun cancel() {
         recognizer.cancel()
         isRecognizerActive = false
-        _state.update { it.copy(isSpeaking = false) }
+        _state.update { it.copy(isTranscribing = false) }
     }
 
-    fun release() {
+    override fun release() {
         recognizer.setRecognitionListener(null)
         recognizer.cancel()
         recognizer.destroy()
         isRecognizerActive = false
     }
+
+    // --- RecognitionListener ---
 
     override fun onReadyForSpeech(params: Bundle?) {
         _state.update { it.copy(error = null) }
@@ -112,7 +109,7 @@ class VoiceToTextParser(
     override fun onBufferReceived(buffer: ByteArray?) = Unit
 
     override fun onEndOfSpeech() {
-        _state.update { it.copy(isSpeaking = false) }
+        _state.update { it.copy(isTranscribing = false) }
         isRecognizerActive = false
     }
 
@@ -129,21 +126,19 @@ class VoiceToTextParser(
             SpeechRecognizer.ERROR_SERVER -> "Server error"
             SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech input"
             SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "Language not supported"
-            SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> "Language unavailable (SODA Error 13)"
+            SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> "Language unavailable"
             else -> "Unknown error: $error"
         }
         
         Log.e(TAG, "Speech recognition error: $errorMessage ($error)")
         _state.update {
-            it.updateError(errorMessage, error)
+            it.copy(
+                error = errorMessage,
+                errorCode = error,
+                isTranscribing = false
+            )
         }
     }
-
-    private fun VoiceToTextParserState.updateError(message: String, code: Int) = copy(
-        error = message,
-        errorCode = code,
-        isSpeaking = false
-    )
 
     override fun onResults(results: Bundle?) {
         isRecognizerActive = false
@@ -153,7 +148,7 @@ class VoiceToTextParser(
             ?.let { result ->
                 _state.update {
                     it.copy(
-                        spokenText = result
+                        transcript = result
                     )
                 }
             }
@@ -166,7 +161,7 @@ class VoiceToTextParser(
             ?.let { result ->
                 _state.update {
                     it.copy(
-                        spokenText = result
+                        transcript = result
                     )
                 }
             }
