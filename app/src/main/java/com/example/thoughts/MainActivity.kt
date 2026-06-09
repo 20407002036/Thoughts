@@ -90,7 +90,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MindfulTopAppBar(
     showClose: Boolean = false,
-    onClose: () -> Unit = {}
+    onClose: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val avatarLabel = "?"
 
@@ -130,7 +131,7 @@ fun MindfulTopAppBar(
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
             } else {
-                IconButton(onClick = { /* No-op in local-first mode */ }) {
+                IconButton(onClick = onLogout) {
                     Box(
                         modifier = Modifier
                             .size(32.dp)

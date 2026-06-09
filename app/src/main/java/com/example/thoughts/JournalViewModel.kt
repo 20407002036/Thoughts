@@ -71,6 +71,27 @@ class JournalViewModel(
     private val _dashboard = MutableStateFlow<DashboardResponse?>(null)
     val dashboard: StateFlow<DashboardResponse?> = _dashboard.asStateFlow()
 
+    private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
+    val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
+
+    private var timerJob: Job? = null
+    private var audioFile: File? = null
+    private var audioRecorder: AudioRecorder? = null
+    private var uploadRetryCount = 0
+
+    // --- On-Device Transcription Engine (Phase 2) ---
+    private val transcriptionEngine: TranscriptionEngine = SystemTranscriptionEngine(application)
+
+    // --- Model Management ---
+    private val modelManager = ModelManager(application)
+    val modelStatus = modelManager.status
+
+    // --- On-Device AI Analysis Engine (Phase 3) ---
+    private val analysisEngine: AnalysisEngine = MediaPipeAnalysisEngine(
+        application,
+        modelManager.getModelFile().absolutePath
+    )
+
     init {
         // Dashboard
         viewModelScope.launch {
@@ -136,27 +157,6 @@ class JournalViewModel(
     fun downloadModel() {
         modelManager.startDownload()
     }
-
-    private val _userPreferences = MutableStateFlow<PreferencesResponse?>(null)
-    val userPreferences: StateFlow<PreferencesResponse?> = _userPreferences.asStateFlow()
-
-    private var timerJob: Job? = null
-    private var audioFile: File? = null
-    private var audioRecorder: AudioRecorder? = null
-    private var uploadRetryCount = 0
-
-    // --- On-Device Transcription Engine (Phase 2) ---
-    private val transcriptionEngine: TranscriptionEngine = SystemTranscriptionEngine(application)
-
-    // --- Model Management ---
-    private val modelManager = ModelManager(application)
-    val modelStatus = modelManager.status
-
-    // --- On-Device AI Analysis Engine (Phase 3) ---
-    private val analysisEngine: AnalysisEngine = MediaPipeAnalysisEngine(
-        application,
-        modelManager.getModelFile().absolutePath
-    )
 
     private val _isAnalyzing = MutableStateFlow(false)
     val isAnalyzing: StateFlow<Boolean> = _isAnalyzing.asStateFlow()

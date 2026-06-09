@@ -10,7 +10,7 @@ object AppBiometricManager {
     fun canAuthenticate(context: Context): Boolean {
         val biometricManager = BiometricManager.from(context)
         return biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
-                BiometricManager.BMSuccess
+                BiometricManager.BIOMETRIC_SUCCESS
     }
 
     fun authenticate(
@@ -28,9 +28,9 @@ object AppBiometricManager {
                     onSuccess()
                 }
 
-                override fun onAuthenticationError(errorCode: Int, errString: String) {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    onError(errString)
+                    onError(errString.toString())
                 }
 
                 override fun onAuthenticationFailed() {
