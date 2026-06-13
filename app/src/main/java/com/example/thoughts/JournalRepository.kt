@@ -200,9 +200,6 @@ object JournalRepository {
         dao.insertDraft(draft.toEntity())
     }
 
-    suspend fun savePreferences(preferences: PreferencesResponse) {
-        prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), preferences))
-    }
 
     // --- Profile & Preferences ---
 
