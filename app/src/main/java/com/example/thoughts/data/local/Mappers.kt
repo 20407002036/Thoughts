@@ -2,10 +2,11 @@ package com.example.thoughts.data.local
 
 import com.example.thoughts.*
 
-fun JournalEntrySummaryResponse.toEntity(): JournalEntryEntity {
+fun JournalEntrySummaryResponse.toEntity(userId: String): JournalEntryEntity {
     val createdAtMillis = createdAt?.let { parseIso8601ToMillis(it) } ?: System.currentTimeMillis()
     return JournalEntryEntity(
         id = entryId ?: id,
+        userId = userId,
         recordingSessionId = "unknown", // Summary doesn't provide this
         title = title,
         createdAtMillis = createdAtMillis,
@@ -34,9 +35,10 @@ fun JournalEntryEntity.toDomain(): JournalEntry {
     )
 }
 
-fun JournalEntry.toEntity(): JournalEntryEntity {
+fun JournalEntry.toEntity(userId: String): JournalEntryEntity {
     return JournalEntryEntity(
         id = id,
+        userId = userId,
         recordingSessionId = recordingSessionId,
         title = title,
         createdAtMillis = createdAtMillis,
@@ -65,9 +67,10 @@ fun JournalDraftEntity.toDomain(): JournalEntryDraft {
     return toDomain(audioAssetEntity = null)
 }
 
-fun JournalEntryDraft.toEntity(): JournalDraftEntity {
+fun JournalEntryDraft.toEntity(userId: String): JournalDraftEntity {
     return JournalDraftEntity(
         id = id,
+        userId = userId,
         recordingSessionId = recordingSessionId,
         title = title,
         transcriptText = transcriptText,
@@ -77,9 +80,10 @@ fun JournalEntryDraft.toEntity(): JournalDraftEntity {
     )
 }
 
-fun AudioAsset.toEntity(): AudioAssetEntity {
+fun AudioAsset.toEntity(userId: String): AudioAssetEntity {
     return AudioAssetEntity(
         id = id,
+        userId = userId,
         recordingSessionId = recordingSessionId,
         localPath = localPath,
         remoteUrl = remoteUrl,
