@@ -5,8 +5,10 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.work.*
 import com.example.thoughts.ui.events.UiAction
 import com.example.thoughts.ui.events.UiEvent
+import com.example.thoughts.work.UploadWorker
 import com.example.thoughts.ui.popup.PopupKind
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -15,6 +17,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
@@ -36,6 +41,7 @@ private const val RecordingDurationKey = "recording_duration"
 private const val RecordingStatusKey = "recording_status"
 private const val TAG = "JournalViewModel"
 private const val MAX_UPLOAD_RETRIES = 3
+private const val UploadWorkName = "audio_uploads"
 
 class JournalViewModel(
     application: Application,
@@ -61,6 +67,32 @@ class JournalViewModel(
 
     private val _archivedEntries = MutableStateFlow<List<ArchiveEntrySummary>>(emptyList())
     val archivedEntries: StateFlow<List<ArchiveEntrySummary>> = _archivedEntries.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    val filteredEntries: StateFlow<List<ArchiveEntrySummary>> = combine(
+        _archivedEntries,
+        _searchQuery
+    ) { entries, query ->
+        if (query.isBlank()) {
+            entries
+        } else {
+            entries.filter { entry ->
+                entry.title.contains(query, ignoreCase = true) ||
+                entry.summary.contains(query, ignoreCase = true) ||
+                (entry.moodLabel?.contains(query, ignoreCase = true) == true)
+            }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
 
     private val _selectedEntry = MutableStateFlow<JournalEntry?>(null)
     val selectedEntry: StateFlow<JournalEntry?> = _selectedEntry.asStateFlow()
@@ -102,6 +134,7 @@ class JournalViewModel(
     private var audioFile: File? = null
     private var audioRecorder: AudioRecorder? = null
     private var uploadRetryCount = 0
+    private var uploadObservationJob: Job? = null
 
     // --- Backend live transcription (WebSocket, PCM streaming) ---
     private var liveTranscriptionClient: LiveTranscriptionWebSocketClient? = null
@@ -209,6 +242,16 @@ class JournalViewModel(
         ).also { it.connect() }
     }
 
+    private fun getLastWords(text: String, wordCount: Int): String {
+        val words = text.trim().split("\\s+".toRegex())
+
+        return if (words.size <= wordCount) {
+            text
+        } else {
+            words.takeLast(wordCount).joinToString(" ")
+        }
+    }
+
     private fun stopBackendLiveTranscription(sendStop: Boolean) {
         val client = liveTranscriptionClient ?: return
         liveTranscriptionClient = null
@@ -252,7 +295,7 @@ class JournalViewModel(
         }.trim()
 
         if (combined.isNotBlank()) {
-            _liveTranscriptText.value = combined
+            _liveTranscriptText.value = getLastWords(combined, 6)
             maybePersistLiveTranscript(combined)
         }
 
@@ -369,18 +412,71 @@ class JournalViewModel(
             // Link asset to draft
             val currentDraft = currentDraftOrDefault()
             saveDraft(currentDraft.copy(audioAsset = asset))
+            enqueueUploadWork(ExistingWorkPolicy.REPLACE)
         }
 
         // Start upload
         uploadRetryCount = 0
+        _uploadState.value = AudioUploadState.Uploading
+        _uploadError.value = null
 
         _uiEvents.tryEmit(
             UiEvent.Toast(
-                message = "Transcription started",
-                kind = PopupKind.Success,
+                message = "Uploading your thought...",
+                kind = PopupKind.Neutral,
             )
         )
-        uploadAudioToBackend()
+
+        observeUploadAsset(asset.id)
+    }
+
+    private fun enqueueUploadWork(existingWorkPolicy: ExistingWorkPolicy) {
+        val uploadWorkRequest = OneTimeWorkRequestBuilder<UploadWorker>()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
+
+        WorkManager.getInstance(getApplication()).enqueueUniqueWork(
+            UploadWorkName,
+            existingWorkPolicy,
+            uploadWorkRequest,
+        )
+    }
+
+    private fun observeUploadAsset(assetId: String) {
+        uploadObservationJob?.cancel()
+        uploadObservationJob = viewModelScope.launch {
+            var lastState: AudioUploadState? = null
+            JournalRepository.getAudioAssetFlow(assetId).collect { asset ->
+                val state = asset?.uploadState ?: return@collect
+                if (state == lastState) return@collect
+                lastState = state
+                _uploadState.value = state
+
+                when (state) {
+                    AudioUploadState.Uploaded -> {
+                        _uploadError.value = null
+                        currentDraftOrDefault().id.let { draftId ->
+                            JournalRepository.getDraft(draftId)?.let { _currentDraft.value = it }
+                        }
+                        _uiEvents.tryEmit(
+                            UiEvent.Toast(
+                                message = "Transcription complete",
+                                kind = PopupKind.Success,
+                            )
+                        )
+                        uploadObservationJob?.cancel()
+                    }
+                    AudioUploadState.Failed -> {
+                        _uploadError.value = "Upload failed"
+                    }
+                    else -> Unit
+                }
+            }
+        }
     }
 
     fun discardRecording() {
@@ -433,6 +529,13 @@ class JournalViewModel(
                 Log.d(TAG, "Upload successful: ${response.transcript.take(100)}")
                 _uploadState.value = AudioUploadState.Processing
                 JournalRepository.updateAudioUploadState(assetId, AudioUploadState.Processing)
+
+                _uiEvents.tryEmit(
+                    UiEvent.Toast(
+                        message = "Transcription complete",
+                        kind = PopupKind.Success,
+                    )
+                )
                 processingComplete(response)
             }
 
@@ -443,6 +546,14 @@ class JournalViewModel(
                     uploadRetryCount++
                     val backoffMs = (1000L * uploadRetryCount).coerceAtMost(5000L)
                     Log.d(TAG, "Retrying upload in ${backoffMs}ms (attempt $uploadRetryCount/$MAX_UPLOAD_RETRIES)")
+
+                    _uiEvents.tryEmit(
+                        UiEvent.Toast(
+                            message = "Connection unstable, retrying...",
+                            kind = PopupKind.Neutral,
+                        )
+                    )
+
                     delay(backoffMs)
                     uploadAudioToBackend()
                 } else {
@@ -467,7 +578,15 @@ class JournalViewModel(
 
     fun retryUpload() {
         uploadRetryCount = 0
-        uploadAudioToBackend()
+        _uploadState.value = AudioUploadState.Uploading
+        _uploadError.value = null
+        _uiEvents.tryEmit(
+            UiEvent.Toast(
+                message = "Connection unstable, retrying...",
+                kind = PopupKind.Neutral,
+            )
+        )
+        enqueueUploadWork(ExistingWorkPolicy.REPLACE)
     }
 
     fun loadArchivedEntries() {
@@ -483,9 +602,9 @@ class JournalViewModel(
         return _archivedEntries.value
     }
 
-    fun loadEntry(id: String) {
+    fun loadEntry(id: String, forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            val result = JournalRepository.getEntry(id)
+            val result = JournalRepository.getEntry(id, forceRefresh)
             result.onSuccess { entry ->
                 _selectedEntry.value = entry
             }
@@ -515,6 +634,19 @@ class JournalViewModel(
         }
     }
 
+    fun savePreferences(preferences: PreferencesResponse = _userPreferences.value ?: PreferencesResponse()) {
+        viewModelScope.launch {
+            JournalRepository.savePreferences(preferences)
+            _userPreferences.value = preferences
+            _uiEvents.tryEmit(
+                UiEvent.Toast(
+                    message = "Settings saved",
+                    kind = PopupKind.Success,
+                )
+            )
+        }
+    }
+
     private fun processingComplete(response: IngestionResponse) {
         _backendResult.value = response
         _uploadState.value = AudioUploadState.Uploaded
@@ -540,13 +672,28 @@ class JournalViewModel(
             transcriptText = response.transcript,
             tags = tags,
             moodAnalysis = mood,
+            audioAsset = currentDraftOrDefault().audioAsset?.copy(
+                remoteUrl = response.audioRemoteUrl,
+                uploadState = AudioUploadState.Uploaded
+            ) ?: AudioAsset(
+                id = "asset-${_recordingSession.value.id}",
+                recordingSessionId = _recordingSession.value.id,
+                remoteUrl = response.audioRemoteUrl,
+                uploadState = AudioUploadState.Uploaded
+            ),
             updatedAtMillis = System.currentTimeMillis(),
         )
         saveDraft(updatedDraft)
 
-        // Cleanup audio file after successful upload
-        audioFile?.let { AudioFileManager.deleteAudioFile(it) }
-        audioFile = null
+        // Wait a bit for UI to transition/load remote URL if needed before cleaning up local file
+        val fileToDelete = audioFile
+        viewModelScope.launch {
+            delay(5000)
+            fileToDelete?.let { AudioFileManager.deleteAudioFile(it) }
+            if (audioFile == fileToDelete) {
+                audioFile = null
+            }
+        }
     }
 
     fun updateTranscriptText(text: String) {
@@ -563,6 +710,7 @@ class JournalViewModel(
             updatedAtMillis = System.currentTimeMillis(),
         )
         saveDraft(draft)
+        emitArchiveUpdatedToast()
     }
 
     fun updateTakeaway(takeaway: String?) {
@@ -571,6 +719,7 @@ class JournalViewModel(
             updatedAtMillis = System.currentTimeMillis(),
         )
         saveDraft(draft)
+        emitArchiveUpdatedToast()
     }
 
     fun clearDraft() {
@@ -591,6 +740,16 @@ class JournalViewModel(
         savedStateHandle.remove<Long>(RecordingEndedAtKey)
         savedStateHandle.remove<Long>(RecordingDurationKey)
         savedStateHandle.remove<String>(RecordingStatusKey)
+        emitArchiveUpdatedToast()
+    }
+
+    private fun emitArchiveUpdatedToast() {
+        _uiEvents.tryEmit(
+            UiEvent.Toast(
+                message = "Entry updated in archive",
+                kind = PopupKind.Neutral,
+            )
+        )
     }
 
     private fun readRecordingSessionFromState(): RecordingSession {

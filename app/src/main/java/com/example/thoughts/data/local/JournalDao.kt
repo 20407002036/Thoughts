@@ -26,6 +26,9 @@ interface JournalDao {
     @Query("SELECT * FROM journal_drafts WHERE id = :id AND userId = :userId")
     suspend fun getDraftById(id: String, userId: String): JournalDraftEntity?
 
+    @Query("SELECT * FROM journal_drafts WHERE recordingSessionId = :recordingSessionId ORDER BY updatedAtMillis DESC LIMIT 1")
+    suspend fun getDraftByRecordingSessionId(recordingSessionId: String): JournalDraftEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDraft(draft: JournalDraftEntity)
 
@@ -40,6 +43,15 @@ interface JournalDao {
 
     @Query("UPDATE audio_assets SET uploadState = :state WHERE id = :id AND userId = :userId")
     suspend fun updateAudioAssetState(id: String, userId: String, state: String)
+    
+    @Query("SELECT * FROM audio_assets WHERE id = :id")
+    fun getAudioAssetFlow(id: String): Flow<AudioAssetEntity?>
+
+    @Query("SELECT * FROM audio_assets WHERE uploadState = 'Local' OR uploadState = 'Failed' OR uploadState = 'Uploading'")
+    suspend fun getAssetsToUpload(): List<AudioAssetEntity>
+
+    @Query("UPDATE audio_assets SET uploadState = :state, remoteUrl = :remoteUrl WHERE id = :id")
+    suspend fun completeAudioAssetUpload(id: String, state: String, remoteUrl: String?)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTranscript(transcript: TranscriptEntity)
