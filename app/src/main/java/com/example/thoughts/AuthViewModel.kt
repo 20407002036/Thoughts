@@ -47,6 +47,7 @@ class AuthViewModel : ViewModel() {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             AuthRepository.login(current.email, current.password)
                 .onSuccess { session ->
+                    JournalRepository.clearAllUserData()
                     AuthSessionManager.saveSession(session)
                     _uiState.update {
                         it.copy(
@@ -103,6 +104,7 @@ class AuthViewModel : ViewModel() {
                 displayName = current.displayName,
             )
                 .onSuccess { session ->
+                    JournalRepository.clearAllUserData()
                     AuthSessionManager.saveSession(session)
                     _uiState.update {
                         it.copy(
@@ -141,6 +143,7 @@ class AuthViewModel : ViewModel() {
     fun logout() {
         viewModelScope.launch {
             val currentSession = AuthSessionManager.session.value
+            JournalRepository.clearAllUserData()
             AuthSessionManager.clearSession()
 
             val result = AuthRepository.logout(currentSession)

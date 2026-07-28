@@ -29,10 +29,23 @@ object JournalRepository {
 
     private val dao get() = database.journalDao()
 
+    private val currentUserId: String?
+        get() = AuthSessionManager.session.value?.userId
+
+    suspend fun clearAllUserData() {
+        if (::database.isInitialized) {
+            dao.clearAllData()
+        }
+        if (::prefsManager.isInitialized) {
+            prefsManager.clearAll()
+        }
+    }
+
     // --- Dashboard ---
 
     fun getDashboardFlow(): Flow<DashboardResponse?> {
-        return dao.getDashboardCache("current_dashboard").map { entity ->
+        val userId = currentUserId ?: return flowOf(null)
+        return dao.getDashboardCache(userId).map { entity ->
             entity?.let {
                 DashboardResponse(
                     prompt = it.prompt,
@@ -45,10 +58,12 @@ object JournalRepository {
     }
 
     suspend fun refreshDashboard() {
+        val userId = currentUserId ?: return
         BackendService.getDashboard()
             .onSuccess { response ->
                 dao.saveDashboardCache(
                     DashboardCacheEntity(
+                        userId = userId,
                         prompt = response.prompt,
                         promptStatus = response.prompt_status,
                         streakCount = response.streak_count,
@@ -65,16 +80,18 @@ object JournalRepository {
     // --- Journal Entries ---
 
     fun getEntries(): Flow<List<JournalEntry>> {
-        return dao.getAllEntries().map { entities ->
+        val userId = currentUserId ?: return flowOf(emptyList())
+        return dao.getAllEntries(userId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     suspend fun refreshEntries() {
+        val userId = currentUserId ?: return
         BackendService.listJournalEntries(limit = 50)
             .onSuccess { response ->
                 response.entries.forEach { summary ->
-                    dao.insertEntry(summary.toEntity())
+                    dao.insertEntry(summary.toEntity(userId))
                 }
             }
             .onFailure { error ->
@@ -82,30 +99,14 @@ object JournalRepository {
             }
     }
 
-    suspend fun getEntry(id: String, forceRefresh: Boolean = false): Result<JournalEntry> {
-        if (!forceRefresh) {
-            val localEntity = dao.getEntryById(id)
-            if (localEntity != null) {
-                val localTranscript = dao.getTranscriptById(localEntity.transcriptId)
-                // Only return local if we have both transcript and audio URL (if it was an audio entry)
-                if (localTranscript != null && localTranscript.fullText.isNotBlank() && localEntity.audioRemoteUrl != null) {
-                    return Result.success(localEntity.toDomain(localTranscript))
-                }
-            }
-        }
+    suspend fun getEntry(id: String): Result<JournalEntry> {
+        val userId = currentUserId ?: return Result.failure(IllegalStateException("No active user session"))
+        val local = dao.getEntryById(id, userId)?.toDomain()
+        if (local != null) return Result.success(local)
 
         return BackendService.getJournalEntry(id).map { response ->
             val entry = response.toJournalEntry()
-            dao.insertTranscript(
-                TranscriptEntity(
-                    id = entry.transcript.id,
-                    recordingSessionId = entry.recordingSessionId,
-                    fullText = entry.transcript.fullText,
-                    languageTag = entry.transcript.languageTag,
-                    confidence = entry.transcript.confidence,
-                )
-            )
-            dao.insertEntry(entry.toEntity())
+            dao.insertEntry(entry.toEntity(userId))
             entry
         }
     }
@@ -113,24 +114,23 @@ object JournalRepository {
     // --- Drafts & Uploads ---
 
     suspend fun getLatestDraft(): JournalEntryDraft? {
-        val entity = dao.getLatestDraft() ?: return null
-        val audioAsset = entity.audioAssetId?.let { dao.getAudioAssetById(it) }
-        return entity.toDomain(audioAsset)
+        val userId = currentUserId ?: return null
+        return dao.getLatestDraft(userId)?.toDomain()
     }
 
     suspend fun saveDraft(draft: JournalEntryDraft) {
-        draft.audioAsset?.let { saveAudioAsset(it) }
-        dao.insertDraft(draft.toEntity())
+        val userId = currentUserId ?: return
+        dao.insertDraft(draft.toEntity(userId))
     }
 
     suspend fun getDraft(id: String): JournalEntryDraft? {
-        val entity = dao.getDraftById(id) ?: return null
-        val audioAsset = entity.audioAssetId?.let { dao.getAudioAssetById(it) }
-        return entity.toDomain(audioAsset)
+        val userId = currentUserId ?: return null
+        return dao.getDraftById(id, userId)?.toDomain()
     }
 
     suspend fun deleteDraft(id: String) {
-        dao.deleteDraft(id)
+        val userId = currentUserId ?: return
+        dao.deleteDraft(id, userId)
     }
 
     suspend fun getAssetsToUpload(): List<AudioAssetEntity> {
@@ -142,11 +142,13 @@ object JournalRepository {
     }
 
     suspend fun saveAudioAsset(asset: AudioAsset) {
-        dao.insertAudioAsset(asset.toEntity())
+        val userId = currentUserId ?: return
+        dao.insertAudioAsset(asset.toEntity(userId))
     }
 
     suspend fun updateAudioUploadState(assetId: String, state: AudioUploadState) {
-        dao.updateAudioAssetState(assetId, state.name)
+        val userId = currentUserId ?: return
+        dao.updateAudioAssetState(assetId, userId, state.name)
     }
 
     suspend fun persistUploadResult(

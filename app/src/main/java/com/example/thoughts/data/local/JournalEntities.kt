@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "journal_entries")
 data class JournalEntryEntity(
     @PrimaryKey val id: String,
+    val userId: String,
     val recordingSessionId: String,
     val title: String?,
     val createdAtMillis: Long,
@@ -22,6 +23,7 @@ data class JournalEntryEntity(
 @Entity(tableName = "journal_drafts")
 data class JournalDraftEntity(
     @PrimaryKey val id: String,
+    val userId: String,
     val recordingSessionId: String,
     val title: String?,
     val transcriptText: String,
@@ -33,6 +35,7 @@ data class JournalDraftEntity(
 @Entity(tableName = "audio_assets")
 data class AudioAssetEntity(
     @PrimaryKey val id: String,
+    val userId: String,
     val recordingSessionId: String,
     val localPath: String?,
     val remoteUrl: String?,
@@ -45,6 +48,7 @@ data class AudioAssetEntity(
 @Entity(tableName = "transcripts")
 data class TranscriptEntity(
     @PrimaryKey val id: String,
+    val userId: String,
     val recordingSessionId: String,
     val fullText: String,
     val languageTag: String,
@@ -53,7 +57,7 @@ data class TranscriptEntity(
 
 @Entity(tableName = "dashboard_cache")
 data class DashboardCacheEntity(
-    @PrimaryKey val id: String = "current_dashboard",
+    @PrimaryKey val userId: String,
     val prompt: String?,
     val promptStatus: String,
     val streakCount: Int,
