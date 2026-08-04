@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.catch
 import java.io.IOException
@@ -13,36 +14,42 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class UserPreferencesManager(private val context: Context) {
 
-    private val profileJson = stringPreferencesKey("user_profile_json")
-    private val preferencesJson = stringPreferencesKey("app_preferences_json")
+    private fun profileKey(userId: String) = stringPreferencesKey("user_profile_json_$userId")
+    private fun preferencesKey(userId: String) = stringPreferencesKey("app_preferences_json_$userId")
 
-    val userProfileFlow: Flow<String?> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }.map { it[profileJson] }
+    fun userProfileFlow(userId: String?): Flow<String?> {
+        if (userId == null) return flowOf(null)
+        return context.dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }.map { it[profileKey(userId)] }
+    }
 
-    val appPreferencesFlow: Flow<String?> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }.map { it[preferencesJson] }
+    fun appPreferencesFlow(userId: String?): Flow<String?> {
+        if (userId == null) return flowOf(null)
+        return context.dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }.map { it[preferencesKey(userId)] }
+    }
 
-    suspend fun saveUserProfile(json: String) {
+    suspend fun saveUserProfile(userId: String, json: String) {
         context.dataStore.edit { preferences ->
-            preferences[profileJson] = json
+            preferences[profileKey(userId)] = json
         }
     }
 
-    suspend fun saveAppPreferences(json: String) {
+    suspend fun saveAppPreferences(userId: String, json: String) {
         context.dataStore.edit { preferences ->
-            preferences[preferencesJson] = json
+            preferences[preferencesKey(userId)] = json
         }
     }
 
