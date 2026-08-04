@@ -56,6 +56,12 @@ interface JournalDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTranscript(transcript: TranscriptEntity)
 
+    @Transaction
+    suspend fun saveEntryWithTranscript(entry: JournalEntryEntity, transcript: TranscriptEntity) {
+        insertEntry(entry)
+        insertTranscript(transcript)
+    }
+
     @Query("SELECT * FROM transcripts WHERE id = :id AND userId = :userId")
     suspend fun getTranscriptById(id: String, userId: String): TranscriptEntity?
 

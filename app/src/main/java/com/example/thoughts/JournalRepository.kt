@@ -3,6 +3,7 @@ package com.example.thoughts
 import android.content.Context
 import android.util.Log
 import com.example.thoughts.data.local.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
@@ -99,16 +100,47 @@ object JournalRepository {
             }
     }
 
-    suspend fun getEntry(id: String): Result<JournalEntry> {
+    suspend fun getEntry(id: String, forceRefresh: Boolean = false): Result<JournalEntry> {
         val userId = currentUserId ?: return Result.failure(IllegalStateException("No active user session"))
-        val local = dao.getEntryById(id, userId)?.toDomain()
-        if (local != null) return Result.success(local)
 
-        return BackendService.getJournalEntry(id).map { response ->
-            val entry = response.toJournalEntry()
-            dao.insertEntry(entry.toEntity(userId))
-            entry
+        if (!forceRefresh) {
+            val cached = getLocalEntry(id, userId)
+            if (cached != null && cached.transcript.fullText.isNotBlank()) {
+                return Result.success(cached)
+            }
         }
+
+        return try {
+            val response = BackendService.getJournalEntry(id).getOrThrow()
+            val entry = response.toJournalEntry()
+            val transcript = TranscriptEntity(
+                id = entry.transcript.id,
+                userId = userId,
+                recordingSessionId = entry.recordingSessionId,
+                fullText = entry.transcript.fullText,
+                languageTag = entry.transcript.languageTag,
+                confidence = entry.transcript.confidence,
+            )
+            dao.saveEntryWithTranscript(entry.toEntity(userId), transcript)
+            Result.success(entry)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            // Offline or server failure: fall back to whatever is cached locally.
+            val cached = getLocalEntry(id, userId)
+            if (cached != null) {
+                Log.w(TAG, "Failed to refresh entry $id, falling back to cache", error)
+                Result.success(cached)
+            } else {
+                Result.failure(error)
+            }
+        }
+    }
+
+    private suspend fun getLocalEntry(id: String, userId: String): JournalEntry? {
+        val entity = dao.getEntryById(id, userId) ?: return null
+        val transcript = dao.getTranscriptById(entity.transcriptId, userId)
+        return entity.toDomain(transcript)
     }
 
     // --- Drafts & Uploads ---
@@ -163,6 +195,7 @@ object JournalRepository {
         dao.insertTranscript(
             TranscriptEntity(
                 id = transcriptId,
+                userId = asset.userId,
                 recordingSessionId = asset.recordingSessionId,
                 fullText = response.transcript,
                 languageTag = languageTag,
@@ -199,7 +232,7 @@ object JournalRepository {
             moodAnalysis = mood,
             updatedAtMillis = System.currentTimeMillis(),
         )
-        dao.insertDraft(draft.toEntity())
+        dao.insertDraft(draft.toEntity(asset.userId))
     }
 
     // --- Profile & Preferences ---
