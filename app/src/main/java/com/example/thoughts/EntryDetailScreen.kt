@@ -192,14 +192,23 @@ fun EntryDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            displayEntry.transcript.fullText,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                lineHeight = 26.sp,
-                                fontStyle = FontStyle.Normal
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                        )
+                        if (displayEntry.transcript.fullText.isBlank()) {
+                            Text(
+                                "Transcript unavailable. It may still be processing, or you're offline — try again when your connection is back.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 22.sp,
+                            )
+                        } else {
+                            Text(
+                                displayEntry.transcript.fullText,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    lineHeight = 26.sp,
+                                    fontStyle = FontStyle.Normal
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            )
+                        }
                     }
                 }
 
