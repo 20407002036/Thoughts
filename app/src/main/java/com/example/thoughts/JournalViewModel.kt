@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
+import java.util.UUID
 
 private const val DraftIdKey = "draft_id"
 private const val RecordingSessionIdKey = "draft_recording_session_id"
@@ -162,20 +163,19 @@ class JournalViewModel(
 
     fun ensureDraftInitialized() {
         if (_currentDraft.value == null) {
-            val now = System.currentTimeMillis()
-            val draft = createDefaultDraft(now)
+            val draft = createDefaultDraft(_recordingSession.value.id, System.currentTimeMillis())
             saveDraft(draft)
         }
     }
 
     private fun currentDraftOrDefault(): JournalEntryDraft {
-        return _currentDraft.value ?: createDefaultDraft(System.currentTimeMillis())
+        return _currentDraft.value ?: createDefaultDraft(_recordingSession.value.id, System.currentTimeMillis())
     }
 
     fun beginRecording() {
         val now = System.currentTimeMillis()
         val session = RecordingSession(
-            id = savedStateHandle.get<String>(RecordingIdKey) ?: "session-$now",
+            id = savedStateHandle.get<String>(RecordingIdKey) ?: "session-${UUID.randomUUID()}",
             startedAtMillis = savedStateHandle.get<Long>(RecordingStartedAtKey) ?: now,
             endedAtMillis = null,
             durationMs = 0L,
@@ -787,11 +787,11 @@ class JournalViewModel(
     }
 }
 
-fun createDefaultDraft(now: Long): JournalEntryDraft {
+fun createDefaultDraft(sessionId: String, now: Long): JournalEntryDraft {
     val id = "draft-$now"
     return JournalEntryDraft(
         id = id,
-        recordingSessionId = "session-$now",
+        recordingSessionId = sessionId,
         title = null,
         transcriptText = "",
         audioAsset = null,

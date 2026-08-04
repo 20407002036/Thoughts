@@ -47,7 +47,7 @@ class AuthViewModel : ViewModel() {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             AuthRepository.login(current.email, current.password)
                 .onSuccess { session ->
-                    JournalRepository.clearAllUserData()
+                    JournalRepository.deleteOtherUsersData(session.userId)
                     AuthSessionManager.saveSession(session)
                     _uiState.update {
                         it.copy(
@@ -104,7 +104,7 @@ class AuthViewModel : ViewModel() {
                 displayName = current.displayName,
             )
                 .onSuccess { session ->
-                    JournalRepository.clearAllUserData()
+                    JournalRepository.deleteOtherUsersData(session.userId)
                     AuthSessionManager.saveSession(session)
                     _uiState.update {
                         it.copy(

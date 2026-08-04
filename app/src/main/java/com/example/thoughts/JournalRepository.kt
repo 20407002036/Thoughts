@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import java.io.File
 
 private const val TAG = "JournalRepository"
 
@@ -33,13 +34,26 @@ object JournalRepository {
     private val currentUserId: String?
         get() = AuthSessionManager.session.value?.userId
 
-    suspend fun clearAllUserData() {
+    suspend fun clearAllUserData(userId: String? = currentUserId) {
+        if (userId == null) return
         if (::database.isInitialized) {
-            dao.clearAllData()
+            dao.getAudioAssetsByUser(userId).forEach { asset ->
+                asset.localPath?.let { AudioFileManager.deleteAudioFile(File(it)) }
+            }
+            dao.deleteUserData(userId)
         }
         if (::prefsManager.isInitialized) {
             prefsManager.clearAll()
         }
+    }
+
+    suspend fun deleteOtherUsersData(userId: String?) {
+        if (userId == null) return
+        if (!::database.isInitialized) return
+        dao.getAudioAssetsNotOwnedBy(userId).forEach { asset ->
+            asset.localPath?.let { AudioFileManager.deleteAudioFile(File(it)) }
+        }
+        dao.deleteOtherUsersData(userId)
     }
 
     // --- Dashboard ---
@@ -166,11 +180,13 @@ object JournalRepository {
     }
 
     suspend fun getAssetsToUpload(): List<AudioAssetEntity> {
-        return dao.getAssetsToUpload()
+        val userId = currentUserId ?: return emptyList()
+        return dao.getAssetsToUpload(userId)
     }
 
     fun getAudioAssetFlow(id: String): Flow<AudioAsset?> {
-        return dao.getAudioAssetFlow(id).map { it?.toDomain() }
+        val userId = currentUserId ?: return flowOf(null)
+        return dao.getAudioAssetFlow(id, userId).map { it?.toDomain() }
     }
 
     suspend fun saveAudioAsset(asset: AudioAsset) {
@@ -189,7 +205,7 @@ object JournalRepository {
         languageTag: String,
     ) {
         val remoteUrl = response.audioRemoteUrl ?: asset.remoteUrl
-        dao.completeAudioAssetUpload(asset.id, AudioUploadState.Uploaded.name, remoteUrl)
+        dao.completeAudioAssetUpload(asset.id, asset.userId, AudioUploadState.Uploaded.name, remoteUrl)
 
         val transcriptId = "transcript-${response.entryId ?: asset.recordingSessionId}"
         dao.insertTranscript(
@@ -203,7 +219,7 @@ object JournalRepository {
             )
         )
 
-        val existingDraft = dao.getDraftByRecordingSessionId(asset.recordingSessionId)
+        val existingDraft = dao.getDraftByRecordingSessionId(asset.recordingSessionId, asset.userId)
         val updatedAssetEntity = asset.copy(
             remoteUrl = remoteUrl,
             uploadState = AudioUploadState.Uploaded.name,
@@ -238,30 +254,35 @@ object JournalRepository {
     // --- Profile & Preferences ---
 
     fun getProfileFlow(): Flow<ProfileResponse?> {
-        return prefsManager.userProfileFlow.map { jsonString ->
+        val userId = currentUserId ?: return flowOf(null)
+        return prefsManager.userProfileFlow(userId).map { jsonString ->
             jsonString?.let { json.decodeFromString<ProfileResponse>(it) }
         }
     }
 
     suspend fun refreshProfile() {
+        val userId = currentUserId ?: return
         BackendService.getProfile().onSuccess { profile ->
-            prefsManager.saveUserProfile(json.encodeToString(ProfileResponse.serializer(), profile))
+            prefsManager.saveUserProfile(userId, json.encodeToString(ProfileResponse.serializer(), profile))
         }
     }
 
     fun getPreferencesFlow(): Flow<PreferencesResponse?> {
-        return prefsManager.appPreferencesFlow.map { jsonString ->
+        val userId = currentUserId ?: return flowOf(null)
+        return prefsManager.appPreferencesFlow(userId).map { jsonString ->
             jsonString?.let { json.decodeFromString<PreferencesResponse>(it) }
         }
     }
 
     suspend fun refreshPreferences() {
+        val userId = currentUserId ?: return
         BackendService.getPreferences().onSuccess { prefs ->
-            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), prefs))
+            prefsManager.saveAppPreferences(userId, json.encodeToString(PreferencesResponse.serializer(), prefs))
         }
     }
 
     suspend fun savePreferences(prefs: PreferencesResponse) {
+        val userId = currentUserId ?: return
         // Prepare patch request
         val request = UpdatePreferencesRequest(
             appearance_mode = prefs.theme,
@@ -272,12 +293,12 @@ object JournalRepository {
 
         // Sync to backend first
         BackendService.updatePreferences(request).onSuccess { updated ->
-            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), updated))
+            prefsManager.saveAppPreferences(userId, json.encodeToString(PreferencesResponse.serializer(), updated))
         }.onFailure {
             // Even if backend fails, we save locally for offline-first feel
             // but log the error
             Log.e(TAG, "Failed to sync preferences to backend", it)
-            prefsManager.saveAppPreferences(json.encodeToString(PreferencesResponse.serializer(), prefs))
+            prefsManager.saveAppPreferences(userId, json.encodeToString(PreferencesResponse.serializer(), prefs))
         }
     }
 }
