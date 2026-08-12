@@ -44,6 +44,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.thoughts.ui.popup.LocalPopupController
+import com.example.thoughts.ui.popup.ModalPopup
+import com.example.thoughts.ui.popup.PopupButton
+import com.example.thoughts.ui.popup.PopupKind
 import com.example.thoughts.ui.popup.SelectionOption
 import com.example.thoughts.ui.popup.SelectionPopup
 import com.example.thoughts.ui.theme.ThoughtsColors
@@ -101,11 +104,6 @@ fun SettingsScreen(
     val audioQuality = prefs?.audio_quality?.replaceFirstChar { it.uppercase() } ?: "High"
     val language = prefs?.language?.uppercase() ?: "EN"
     val currentPrefs = prefs ?: PreferencesResponse()
-    val nextAppearanceMode = when (currentPrefs.appearance_mode.lowercase()) {
-        "light" -> "dark"
-        "dark" -> "auto"
-        else -> "light"
-    }
 
     val settingsSections = listOf(
         SettingsSection(
@@ -126,12 +124,6 @@ fun SettingsScreen(
                     "Appearance",
                     appearanceMode,
                     action = {
-                        journalViewModel.savePreferences(currentPrefs.copy(theme = nextAppearanceMode))
-                    }
-                ),
-                SettingsItem(Icons.Default.Notifications, "Notifications", notificationsStatus),
-                SettingsItem(Icons.Default.Brightness4, "Appearance", appearanceMode,
-                    action = {
                         popupController.showSelection(
                             SelectionPopup(
                                 title = "Choose Appearance",
@@ -142,19 +134,20 @@ fun SettingsScreen(
                                         onClick = { themeViewModel.setTheme(ThemeMode.Dark) }
                                     ),
                                     SelectionOption(
-                                        label = "light mode",
+                                        label = "Light mode",
                                         isSelected = currentThemeMode == ThemeMode.Light,
                                         onClick = { themeViewModel.setTheme(ThemeMode.Light) }
                                     ),
                                     SelectionOption(
-                                        label = "auto (system theme)",
+                                        label = "Auto (System theme)",
                                         isSelected = currentThemeMode == ThemeMode.Auto,
                                         onClick = { themeViewModel.setTheme(ThemeMode.Auto) }
                                     )
                                 )
                             )
                         )
-                    }),
+                    }
+                ),
                 SettingsItem(Icons.Default.Mic, "Audio Settings", "$audioQuality • $language")
             )
         ),
@@ -168,9 +161,28 @@ fun SettingsScreen(
                     "Sign Out",
                     "",
                     action = {
-                        scope.launch {
-                            authViewModel.logout()
-                        }
+                        popupController.showModal(
+                            ModalPopup(
+                                kind = PopupKind.Neutral,
+                                title = "Sign Out?",
+                                message = "Your entries are saved. You'll need to sign in again to access them on this device.",
+                                primary = PopupButton(
+                                    label = "Sign Out",
+                                    onClick = {
+                                        popupController.dismissModal()
+                                        scope.launch {
+                                            authViewModel.logout()
+                                        }
+                                    }
+                                ),
+                                secondary = PopupButton(
+                                    label = "Cancel",
+                                    onClick = {
+                                        popupController.dismissModal()
+                                    }
+                                )
+                            )
+                        )
                     }
                 )
             )
