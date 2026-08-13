@@ -161,7 +161,7 @@ object JournalRepository {
 
     suspend fun getLatestDraft(): JournalEntryDraft? {
         val userId = currentUserId ?: return null
-        return dao.getLatestDraft(userId)?.toDomain()
+        return dao.getLatestDraft(userId)?.withAudioAsset(userId)
     }
 
     suspend fun saveDraft(draft: JournalEntryDraft) {
@@ -171,7 +171,12 @@ object JournalRepository {
 
     suspend fun getDraft(id: String): JournalEntryDraft? {
         val userId = currentUserId ?: return null
-        return dao.getDraftById(id, userId)?.toDomain()
+        return dao.getDraftById(id, userId)?.withAudioAsset(userId)
+    }
+
+    private suspend fun JournalDraftEntity.withAudioAsset(userId: String): JournalEntryDraft {
+        val assetId = audioAssetId ?: return toDomain()
+        return toDomain(dao.getAudioAssetById(assetId, userId))
     }
 
     suspend fun deleteDraft(id: String) {
