@@ -567,7 +567,9 @@ fun FlowRow(
         }
         if (currentRow.isNotEmpty()) rows.add(currentRow)
 
-        val height = rows.sumOf { row -> row.maxOf { it.height } } + (rows.size - 1) * crossAxisSpacing.toPx().toInt()
+        val height = if (rows.isEmpty()) 0 else {
+            rows.sumOf { row -> row.maxOf { it.height } } + (rows.size - 1) * crossAxisSpacing.toPx().toInt()
+        }.coerceAtLeast(0)
         
         layout(layoutWidth, height) {
             var y = 0
